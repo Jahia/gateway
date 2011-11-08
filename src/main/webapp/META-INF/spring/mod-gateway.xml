@@ -1,0 +1,48 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<beans xmlns="http://www.springframework.org/schema/beans"
+       xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+       xmlns:lang="http://www.springframework.org/schema/lang"
+       xsi:schemaLocation="http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans-3.0.xsd http://www.springframework.org/schema/lang http://www.springframework.org/schema/lang/spring-lang-3.0.xsd">
+
+    <lang:groovy id="articleDecoder"
+                 script-source="classpath:org/jahia/modules/gateway/decoders/ArticleMailDecoderImpl.groovy">
+        <lang:property name="paths">
+            <map key-type="java.lang.String" value-type="java.lang.String">
+                <entry key="shared" value="/sites/systemsite/contents/articles"/>
+            </map>
+        </lang:property>
+        <lang:property name="userManagerService" ref="JahiaUserManagerService"/>
+    </lang:groovy>
+
+    <bean id="gatewayService" class="org.jahia.modules.gateway.GatewayService">
+        <property name="deserializer">
+            <bean class="org.jahia.modules.gateway.JSONToJCRDeserializer">
+                <property name="jcrTemplate" ref="jcrTemplate"/>
+            </bean>
+        </property>
+        <property name="mailToJSON">
+            <bean class="org.jahia.modules.gateway.MailToJSON">
+                <property name="regexps">
+                    <list value-type="java.lang.String">
+                        <value>create ([a-z]+):([a-zA-Z ]+) located in ([a-zA-Z/]*)</value>
+                    </list>
+                </property>
+                <property name="decoders">
+                    <map key-type="java.lang.String">
+                        <entry key="news">
+                            <bean class="org.jahia.modules.gateway.decoders.NewsMailDecoderImpl">
+                                <property name="paths">
+                                    <map key-type="java.lang.String" value-type="java.lang.String">
+                                        <entry key="shared" value="/sites/systemsite/contents/news"/>
+                                    </map>
+                                </property>
+                                <property name="userManagerService" ref="JahiaUserManagerService"/>
+                            </bean>
+                        </entry>
+                        <entry key="article" value-ref="articleDecoder"/>
+                    </map>
+                </property>
+            </bean>
+        </property>
+    </bean>
+</beans>
