@@ -45,7 +45,11 @@ class ArticleMailDecoderImpl implements MailDecoder {
             boolean intro = true;
             body.replaceAll("<br>", "\n").replaceAll("<br/>", "\n").eachLine {line, idx ->
                 if (!"".equals(line)) {
-                    text += line;
+                    if (line.startsWith("tags:")) {
+                        jsonObject.put("tags", line.substring(5))
+                    } else {
+                        text += line;
+                    }
                 } else if (!"".equals(text)) {
                     if (intro) {
                         properties.put("intro", text)

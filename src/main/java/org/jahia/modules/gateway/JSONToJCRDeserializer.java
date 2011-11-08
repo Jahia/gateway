@@ -79,7 +79,7 @@ public class JSONToJCRDeserializer {
 
     @Handler
     public void deserialize(String body) {
-        if (body != null) {
+        if (body != null && body.startsWith("{")) {
             try {
                 final JSONObject jsonObject = new JSONObject(body);
 
@@ -139,7 +139,7 @@ public class JSONToJCRDeserializer {
                                 String[] tags = jsonObject.getString("tags").split(",");
                                 String siteKey = newNode.getResolveSite().getSiteKey();
                                 for (String tag : tags) {
-                                    taggingService.tag(newNode, tag, siteKey, true);
+                                    taggingService.tag(newNode.getPath(), tag.trim(), siteKey, true, session);
                                 }
                             }
                         } catch (JSONException e) {

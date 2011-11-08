@@ -18,6 +18,7 @@
         <property name="deserializer">
             <bean class="org.jahia.modules.gateway.JSONToJCRDeserializer">
                 <property name="jcrTemplate" ref="jcrTemplate"/>
+                <property name="taggingService" ref="org.jahia.services.tags.TaggingService"/>
             </bean>
         </property>
         <property name="mailToJSON">
@@ -43,6 +44,11 @@
                     </map>
                 </property>
             </bean>
+        </property>
+        <property name="mailboxes">
+            <list value-type="java.lang.String">
+                <value>imaps://imap.gmail.com?username=yourusername&amp;password=yourpassword&amp;consumer.delay=60000</value>
+            </list>
         </property>
     </bean>
 </beans>
