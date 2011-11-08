@@ -61,7 +61,7 @@ public class GatewayService implements CamelContextAware {
             camelContext.addRoutes(new RouteBuilder() {
                 @Override
                 public void configure() throws Exception {
-                    from("imaps://imap.gmail.com?username=cedric.mailleux@gmail.com&password=aillas&consumer.delay=60000").bean(mailToJSON).bean(deserializer);
+                    from("imaps://imap.gmail.com?username=uour.email@gmail.com&password=yourpassword&consumer.delay=60000").bean(mailToJSON).bean(deserializer);
                 }
             });
         } catch (Exception e) {
