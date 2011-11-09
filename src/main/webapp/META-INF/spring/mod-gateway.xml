@@ -17,7 +17,7 @@
     <bean id="gatewayService" class="org.jahia.modules.gateway.GatewayService">
         <property name="template" ref="jcrTemplate"/>
         <property name="deserializers">
-            <map key-type="java.lang.String" value-type="org.jahia.modules.gateway.Deserializer">
+            <map key-type="java.lang.String" value-type="org.jahia.modules.gateway.CamelHandler">
                 <entry key="jsontojcr">
                     <bean class="org.jahia.modules.gateway.JSONToJCRDeserializer">
                         <property name="jcrTemplate" ref="jcrTemplate"/>

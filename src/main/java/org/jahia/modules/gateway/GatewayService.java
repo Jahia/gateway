@@ -35,7 +35,8 @@ package org.jahia.modules.gateway;
 import org.apache.camel.CamelContext;
 import org.apache.camel.CamelContextAware;
 import org.apache.camel.builder.RouteBuilder;
-import org.apache.camel.component.bean.BeanEndpoint;
+import org.apache.camel.model.ProcessorDefinition;
+import org.apache.camel.model.RouteDefinition;
 import org.apache.log4j.Logger;
 import org.jahia.services.content.JCRCallback;
 import org.jahia.services.content.JCRNodeWrapper;
@@ -46,9 +47,7 @@ import org.springframework.beans.factory.InitializingBean;
 import javax.jcr.NodeIterator;
 import javax.jcr.PathNotFoundException;
 import javax.jcr.RepositoryException;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 
 /**
  * Created by IntelliJ IDEA.
@@ -60,8 +59,8 @@ import java.util.Map;
 public class GatewayService implements CamelContextAware, InitializingBean {
     private transient static Logger logger = Logger.getLogger(GatewayService.class);
     private CamelContext camelContext;
-    private Map<String, Deserializer> deserializers;
-    private Map<String, Transformer> transformers;
+    private Map<String, CamelHandler> deserializers;
+    private Map<String, ConfigurableCamelHandler> transformers;
     private Map<String, String> routeStartPoints;
     private Map<String, String> routes;
     private JCRTemplate template;
@@ -84,11 +83,11 @@ public class GatewayService implements CamelContextAware, InitializingBean {
         return camelContext;
     }
 
-    public void setDeserializers(Map<String, Deserializer> deserializers) {
+    public void setDeserializers(Map<String, CamelHandler> deserializers) {
         this.deserializers = deserializers;
     }
 
-    public void setTransformers(Map<String, Transformer> transformers) {
+    public void setTransformers(Map<String, ConfigurableCamelHandler> transformers) {
         this.transformers = transformers;
     }
 
@@ -112,10 +111,10 @@ public class GatewayService implements CamelContextAware, InitializingBean {
      */
     public void afterPropertiesSet() throws Exception {
         if (transformers == null) {
-            transformers = new HashMap<String, Transformer>();
+            transformers = new HashMap<String, ConfigurableCamelHandler>();
         }
         if (deserializers == null) {
-            deserializers = new HashMap<String, Deserializer>();
+            deserializers = new HashMap<String, CamelHandler>();
         }
         if (routeStartPoints == null) {
             routeStartPoints = new HashMap<String, String>();
@@ -149,22 +148,27 @@ public class GatewayService implements CamelContextAware, InitializingBean {
         });
         for (Map.Entry<String, String> entry : routes.entrySet()) {
             String[] strings = entry.getValue().split("->");
-            if (strings.length == 3) {
-                addRoute(strings[0], strings[1], strings[2]);
+            if (strings.length > 1) {
+                List<String> handlers = new ArrayList<String>();
+                handlers.addAll(Arrays.asList(strings).subList(1, strings.length));
+                addRoute(strings[0], handlers);
             }
         }
     }
 
-    public void addRoute(final String name, final String routeStartPointKey, final String transformerKey, final String deserializerKey) {
-        if (addRoute(routeStartPointKey, transformerKey, deserializerKey)) {
-            final String route = routeStartPointKey + "->" + transformerKey + "->" + deserializerKey;
-            routes.put(name, route);
+    public void addRoute(final String name, final String routeStartPointKey, final List<String> handlers) {
+        if (addRoute(routeStartPointKey, handlers)) {
+            final StringBuilder route = new StringBuilder(routeStartPointKey);
+            for (String handler : handlers) {
+                route.append("->").append(handler);
+            }
+            routes.put(name, route.toString());
             try {
                 template.doExecuteWithSystemSession(new JCRCallback<Object>() {
                     public Object doInJCR(JCRSessionWrapper session) throws RepositoryException {
                         JCRNodeWrapper node = session.getNode("/gateway/routes");
                         JCRNodeWrapper jcrNodeWrapper = node.addNode(name, "jnt:gtwRoute");
-                        jcrNodeWrapper.setProperty("route", route);
+                        jcrNodeWrapper.setProperty("route", route.toString());
                         session.save();
                         return null;
                     }
@@ -175,12 +179,19 @@ public class GatewayService implements CamelContextAware, InitializingBean {
         }
     }
 
-    private boolean addRoute(final String routeStartPointKey, final String transformerKey, final String deserializerKey) {
+    private boolean addRoute(final String routeStartPointKey, final List<String> handlers) {
         try {
             camelContext.addRoutes(new RouteBuilder() {
                 @Override
                 public void configure() throws Exception {
-                    from(routeStartPoints.get(routeStartPointKey)).bean(transformers.get(transformerKey)).bean(deserializers.get(deserializerKey));
+                    ProcessorDefinition route = from(routeStartPoints.get(routeStartPointKey));
+                    for (String handler : handlers) {
+                        if(transformers.containsKey(handler)) {
+                            route = transformers.get(handler).appendToRoute(route);
+                        } else if(deserializers.containsKey(handler)) {
+                            route = deserializers.get(handler).appendToRoute(route);
+                        }
+                    }
 
                 }
             });
@@ -216,11 +227,11 @@ public class GatewayService implements CamelContextAware, InitializingBean {
         return routes;
     }
 
-    public Map<String, Deserializer> getDeserializers() {
+    public Map<String, CamelHandler> getDeserializers() {
         return deserializers;
     }
 
-    public Map<String, Transformer> getTransformers() {
+    public Map<String, ConfigurableCamelHandler> getTransformers() {
         return transformers;
     }
 

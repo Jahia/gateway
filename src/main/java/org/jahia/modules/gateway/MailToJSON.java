@@ -36,6 +36,7 @@ import org.apache.camel.Exchange;
 import org.apache.camel.Handler;
 import org.apache.camel.component.mail.MailMessage;
 import org.apache.camel.impl.DefaultMessage;
+import org.apache.camel.model.ProcessorDefinition;
 import org.apache.log4j.Logger;
 import org.jahia.services.content.*;
 import org.springframework.beans.BeansException;
@@ -65,14 +66,14 @@ import java.util.regex.Pattern;
  * @since : JAHIA 6.1
  *        Created : 11/7/11
  */
-public class MailToJSON implements Transformer, InitializingBean {
+public class MailToJSON implements ConfigurableCamelHandler, InitializingBean {
     private transient static Logger logger = Logger.getLogger(MailToJSON.class);
     private List<Pattern> regexps;
     private Map<String, MailDecoder> decoders;
     private JCRTemplate jcrTemplate;
 
     @Handler
-    public void transform(Exchange exchange) {
+    public void handleExchange(Exchange exchange) {
         assert exchange.getIn() instanceof MailMessage;
         final Message mailMessage = ((MailMessage) exchange.getIn()).getMessage();
         try {
@@ -110,6 +111,10 @@ public class MailToJSON implements Transformer, InitializingBean {
         } catch (Exception e) {
             logger.error(e.getMessage(), e);
         }
+    }
+
+    public ProcessorDefinition appendToRoute(ProcessorDefinition processorDefinition) {
+        return processorDefinition.bean(this);
     }
 
     public void configure(HttpServletRequest request) throws GatewayTransformerConfigurationException {

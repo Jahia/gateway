@@ -32,7 +32,9 @@
  */
 package org.jahia.modules.gateway;
 
+import org.apache.camel.Exchange;
 import org.apache.camel.Handler;
+import org.apache.camel.model.ProcessorDefinition;
 import org.apache.log4j.Logger;
 import org.jahia.services.content.*;
 import org.jahia.services.content.nodetypes.NodeTypeRegistry;
@@ -68,7 +70,7 @@ import java.util.Iterator;
  * @since : JAHIA 6.1
  *        Created : 11/7/11
  */
-public class JSONToJCRDeserializer implements Deserializer {
+public class JSONToJCRDeserializer implements CamelHandler {
     private transient static Logger logger = Logger.getLogger(JSONToJCRDeserializer.class);
     private JCRTemplate jcrTemplate;
     private TaggingService taggingService;
@@ -78,9 +80,10 @@ public class JSONToJCRDeserializer implements Deserializer {
     }
 
     @Handler
-    public void deserialize(String body) {
-        if (body != null && body.startsWith("{")) {
+    public void handleExchange(Exchange exchange) {
+        if (exchange != null && exchange.getIn() != null && exchange.getIn().getBody().toString().startsWith("{")) {
             try {
+                String body = exchange.getIn().getBody().toString();
                 final JSONObject jsonObject = new JSONObject(body);
 
                 final String nodetype = jsonObject.getString("nodetype");
@@ -157,6 +160,10 @@ public class JSONToJCRDeserializer implements Deserializer {
                 logger.error(e.getMessage(), e);
             }
         }
+    }
+
+    public ProcessorDefinition appendToRoute(ProcessorDefinition processorDefinition) {
+        return processorDefinition.bean(this);
     }
 
     private void setPropertiesOnNode(JCRNodeWrapper newNode, JSONObject properties) throws RepositoryException {

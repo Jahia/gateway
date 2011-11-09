@@ -14,6 +14,7 @@ import org.jahia.utils.i18n.JahiaResourceBundle;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 import javax.servlet.jsp.jstl.fmt.LocalizationContext;
+import java.util.Arrays;
 import java.util.Map;
 
 /**
@@ -51,7 +52,7 @@ public class GatewayAdministrationModule extends AbstractAdministrationModule {
             String deserializerName = request.getParameter("deserializerName");
             String routeName = request.getParameter("routeName");
             if (startPointName != null && transformerName != null && deserializerName != null && routeName != null) {
-                gatewayService.addRoute(routeName, startPointName, transformerName, deserializerName);
+                gatewayService.addRoute(routeName, startPointName, Arrays.asList(transformerName,deserializerName));
             }
         } else if ("configureTransformer".equals(operation)) {
             String transformerType = request.getParameter("transformerType");
