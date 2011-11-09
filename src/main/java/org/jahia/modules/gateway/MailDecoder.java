@@ -33,6 +33,7 @@
 package org.jahia.modules.gateway;
 
 import javax.mail.Address;
+import java.util.Map;
 
 /**
  * Created by IntelliJ IDEA.
@@ -43,4 +44,6 @@ import javax.mail.Address;
  */
 public interface MailDecoder {
     String decode(String title, String nodepath, String body, Address[] from) throws Exception;
+    void addPath(String name, String path);
+    Map<String,String> getPaths();
 }

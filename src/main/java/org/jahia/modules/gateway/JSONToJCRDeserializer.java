@@ -68,7 +68,7 @@ import java.util.Iterator;
  * @since : JAHIA 6.1
  *        Created : 11/7/11
  */
-public class JSONToJCRDeserializer {
+public class JSONToJCRDeserializer implements Deserializer {
     private transient static Logger logger = Logger.getLogger(JSONToJCRDeserializer.class);
     private JCRTemplate jcrTemplate;
     private TaggingService taggingService;

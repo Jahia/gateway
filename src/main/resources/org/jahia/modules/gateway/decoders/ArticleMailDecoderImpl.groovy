@@ -82,4 +82,7 @@ class ArticleMailDecoderImpl implements MailDecoder {
         }
     }
 
+    void addPath(String name, String path) {
+        paths.put(name, path)
+    }
 }

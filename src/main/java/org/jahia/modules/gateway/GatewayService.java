@@ -37,9 +37,18 @@ import org.apache.camel.CamelContextAware;
 import org.apache.camel.builder.RouteBuilder;
 import org.apache.camel.component.bean.BeanEndpoint;
 import org.apache.log4j.Logger;
+import org.jahia.services.content.JCRCallback;
+import org.jahia.services.content.JCRNodeWrapper;
+import org.jahia.services.content.JCRSessionWrapper;
+import org.jahia.services.content.JCRTemplate;
 import org.springframework.beans.factory.InitializingBean;
 
+import javax.jcr.NodeIterator;
+import javax.jcr.PathNotFoundException;
+import javax.jcr.RepositoryException;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 /**
  * Created by IntelliJ IDEA.
@@ -51,9 +60,11 @@ import java.util.List;
 public class GatewayService implements CamelContextAware, InitializingBean {
     private transient static Logger logger = Logger.getLogger(GatewayService.class);
     private CamelContext camelContext;
-    private JSONToJCRDeserializer deserializer;
-    private MailToJSON mailToJSON;
-    private List<String> mailboxes;
+    private Map<String, Deserializer> deserializers;
+    private Map<String, Transformer> transformers;
+    private Map<String, String> routeStartPoints;
+    private Map<String, String> routes;
+    private JCRTemplate template;
 
     /**
      * Injects the {@link org.apache.camel.CamelContext}
@@ -73,16 +84,20 @@ public class GatewayService implements CamelContextAware, InitializingBean {
         return camelContext;
     }
 
-    public void setDeserializer(JSONToJCRDeserializer deserializer) {
-        this.deserializer = deserializer;
+    public void setDeserializers(Map<String, Deserializer> deserializers) {
+        this.deserializers = deserializers;
     }
 
-    public void setMailToJSON(MailToJSON mailToJSON) {
-        this.mailToJSON = mailToJSON;
+    public void setTransformers(Map<String, Transformer> transformers) {
+        this.transformers = transformers;
     }
 
-    public void setMailboxes(List<String> mailboxes) {
-        this.mailboxes = mailboxes;
+    public void setRouteStartPoints(Map<String, String> routeStartPoints) {
+        this.routeStartPoints = routeStartPoints;
+    }
+
+    public void setRoutes(Map<String, String> routes) {
+        this.routes = routes;
     }
 
     /**
@@ -96,25 +111,120 @@ public class GatewayService implements CamelContextAware, InitializingBean {
      *                   as failure to set an essential property) or if initialization fails.
      */
     public void afterPropertiesSet() throws Exception {
+        if (transformers == null) {
+            transformers = new HashMap<String, Transformer>();
+        }
+        if (deserializers == null) {
+            deserializers = new HashMap<String, Deserializer>();
+        }
+        if (routeStartPoints == null) {
+            routeStartPoints = new HashMap<String, String>();
+        }
+        if (routes == null) {
+            routes = new HashMap<String, String>();
+        }
+        // load start points and routes from jcr
+
+        template.doExecuteWithSystemSession(new JCRCallback<Object>() {
+            public Object doInJCR(JCRSessionWrapper session) throws RepositoryException {
+                try {
+                    session.getNode("/gateway");
+                    JCRNodeWrapper node = session.getNode("/gateway/startPoints");
+                    NodeIterator nodes = node.getNodes();
+                    while (nodes.hasNext()) {
+                        JCRNodeWrapper next = (JCRNodeWrapper) nodes.nextNode();
+                        routeStartPoints.put(next.getName(), next.getProperty("uri").getString());
+                    }
+                    node = session.getNode("/gateway/routes");
+                    nodes = node.getNodes();
+                    while (nodes.hasNext()) {
+                        JCRNodeWrapper next = (JCRNodeWrapper) nodes.nextNode();
+                        routes.put(next.getName(), next.getProperty("route").getString());
+                    }
+                } catch (PathNotFoundException e) {
+                    logger.debug("Gateway not imported yet");
+                }
+                return null;
+            }
+        });
+        for (Map.Entry<String, String> entry : routes.entrySet()) {
+            String[] strings = entry.getValue().split("->");
+            if (strings.length == 3) {
+                addRoute(strings[0], strings[1], strings[2]);
+            }
+        }
+    }
+
+    public void addRoute(final String name, final String routeStartPointKey, final String transformerKey, final String deserializerKey) {
+        if (addRoute(routeStartPointKey, transformerKey, deserializerKey)) {
+            final String route = routeStartPointKey + "->" + transformerKey + "->" + deserializerKey;
+            routes.put(name, route);
+            try {
+                template.doExecuteWithSystemSession(new JCRCallback<Object>() {
+                    public Object doInJCR(JCRSessionWrapper session) throws RepositoryException {
+                        JCRNodeWrapper node = session.getNode("/gateway/routes");
+                        JCRNodeWrapper jcrNodeWrapper = node.addNode(name, "jnt:gtwRoute");
+                        jcrNodeWrapper.setProperty("route", route);
+                        session.save();
+                        return null;
+                    }
+                });
+            } catch (RepositoryException e) {
+                e.printStackTrace();  //To change body of catch statement use File | Settings | File Templates.
+            }
+        }
+    }
+
+    private boolean addRoute(final String routeStartPointKey, final String transformerKey, final String deserializerKey) {
         try {
             camelContext.addRoutes(new RouteBuilder() {
                 @Override
                 public void configure() throws Exception {
-                    for (String mailbox:mailboxes) {
-                        try {
-                            from(mailbox).bean(mailToJSON).bean(deserializer);
-                        } catch (Exception e) {
-                            logger.error(e.getMessage(), e);
-                        }
-                    }
+                    from(routeStartPoints.get(routeStartPointKey)).bean(transformers.get(transformerKey)).bean(deserializers.get(deserializerKey));
+
                 }
             });
+            return true;
         } catch (Exception e) {
             logger.error(e.getMessage(), e);
         }
+        return false;
     }
 
-    public List<String> getMailboxes() {
-        return mailboxes;
+    public void addRouteStartPoint(final String name, final String route) {
+        routeStartPoints.put(name, route);
+        try {
+            template.doExecuteWithSystemSession(new JCRCallback<Object>() {
+                public Object doInJCR(JCRSessionWrapper session) throws RepositoryException {
+                    JCRNodeWrapper node = session.getNode("/gateway/startPoints");
+                    JCRNodeWrapper jcrNodeWrapper = node.addNode(name, "jnt:gtwStartPoint");
+                    jcrNodeWrapper.setProperty("uri", route);
+                    session.save();
+                    return null;
+                }
+            });
+        } catch (RepositoryException e) {
+            e.printStackTrace();  //To change body of catch statement use File | Settings | File Templates.
+        }
+    }
+
+    public Map<String, String> getRouteStartPoints() {
+        return routeStartPoints;
+    }
+
+    public Map<String, String> getRoutes() {
+        return routes;
+    }
+
+    public Map<String, Deserializer> getDeserializers() {
+        return deserializers;
+    }
+
+    public Map<String, Transformer> getTransformers() {
+        return transformers;
+    }
+
+    public void setTemplate(JCRTemplate template) {
+        this.template = template;
     }
 }

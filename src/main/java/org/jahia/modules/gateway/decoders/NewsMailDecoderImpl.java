@@ -89,6 +89,14 @@ public class NewsMailDecoderImpl implements MailDecoder {
         }
     }
 
+    public void addPath(String name, String path) {
+        paths.put(name, path);
+    }
+
+    public Map<String, String> getPaths() {
+        return paths;
+    }
+
     public void setPaths(Map<String, String> paths) {
         this.paths = paths;
     }
