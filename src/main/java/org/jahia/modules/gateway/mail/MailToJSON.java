@@ -30,27 +30,35 @@
  * between you and Jahia Limited. If you are unsure which license is appropriate
  * for your use, please contact the sales department at sales@jahia.com.
  */
-package org.jahia.modules.gateway;
+package org.jahia.modules.gateway.mail;
 
 import org.apache.camel.Exchange;
 import org.apache.camel.Handler;
 import org.apache.camel.component.mail.MailMessage;
 import org.apache.camel.impl.DefaultMessage;
 import org.apache.camel.model.ProcessorDefinition;
+import org.apache.commons.io.FileUtils;
+import org.apache.commons.lang.StringUtils;
 import org.apache.log4j.Logger;
+import org.jahia.modules.gateway.ConfigurableCamelHandler;
+import org.jahia.modules.gateway.GatewayTransformerConfigurationException;
 import org.jahia.services.content.*;
-import org.springframework.beans.BeansException;
 import org.springframework.beans.factory.BeanCreationException;
-import org.springframework.beans.factory.BeanCreationNotAllowedException;
 import org.springframework.beans.factory.InitializingBean;
 import org.springframework.mail.MailParseException;
 
 import javax.jcr.NodeIterator;
 import javax.jcr.PathNotFoundException;
 import javax.jcr.RepositoryException;
+import javax.mail.BodyPart;
 import javax.mail.Message;
+import javax.mail.MessagingException;
+import javax.mail.Part;
 import javax.mail.internet.MimeMultipart;
 import javax.servlet.http.HttpServletRequest;
+import java.io.File;
+import java.io.IOException;
+import java.io.InputStream;
 import java.io.UnsupportedEncodingException;
 import java.net.URLDecoder;
 import java.util.LinkedList;
@@ -78,27 +86,18 @@ public class MailToJSON implements ConfigurableCamelHandler, InitializingBean {
         final Message mailMessage = ((MailMessage) exchange.getIn()).getMessage();
         try {
             String subject = mailMessage.getSubject();
-            String content = null;
-            Object mailContent = mailMessage.getContent();
-            if (mailContent instanceof MimeMultipart) {
-                MimeMultipart mailMessageContent = (MimeMultipart) mailContent;
-                if (mailMessageContent.getCount() > 1) {
-                    content = (String) mailMessageContent.getBodyPart(1).getContent();
-                } else {
-                    content = (String) mailMessageContent.getBodyPart(0).getContent();
-                }
-            } else if (mailContent instanceof String) {
-                content = (String) mailContent;
-            }
-            assert content != null;
             boolean matches = false;
             for (Pattern regexp : regexps) {
                 Matcher matcher = regexp.matcher(subject);
                 if (matcher.matches()) {
+                    // Handle content and multipart
+                    MailContent mailContent = new MailContent();
+                    handleMailMessage(mailMessage, mailContent);
+
                     if (decoders.containsKey(matcher.group(1))) {
                         DefaultMessage in = new DefaultMessage();
                         String decode = decoders.get(matcher.group(1)).decode(matcher.group(2), matcher.group(3),
-                                content, mailMessage.getFrom());
+                                mailContent, mailMessage.getFrom());
                         in.setBody(decode);
                         exchange.setOut(in);
                         matches = true;
@@ -106,11 +105,35 @@ public class MailToJSON implements ConfigurableCamelHandler, InitializingBean {
                 }
             }
             if (!matches) {
-                exchange.setException(new MailParseException("This mail does not match any predefined regexp " + subject));
+                exchange.setException(new MailParseException(
+                        "This mail does not match any predefined regexp " + subject));
             }
         } catch (Exception e) {
             logger.error(e.getMessage(), e);
         }
+    }
+
+    private void handleMailMessage(Part part, MailContent content) throws IOException, MessagingException {
+        Object mailContent = part.getContent();
+        if (mailContent instanceof MimeMultipart) {
+            MimeMultipart mailMessageContent = (MimeMultipart) mailContent;
+            // We have some attachments
+            for (int i = 0; i < mailMessageContent.getCount(); i++) {
+                BodyPart bodyPart = mailMessageContent.getBodyPart(i);
+                handleMailMessage(bodyPart, content);
+            }
+        } else if (mailContent instanceof String) {
+            if(content.getBody()==null || part.isMimeType("text/html")) {
+                content.setBody((String) mailContent);
+            }
+        } else if (mailContent instanceof InputStream) {
+            String filename = part.getFileName();
+            File tempFile = File.createTempFile(StringUtils.substringBeforeLast(filename, "."),
+                    "." + StringUtils.substringAfterLast(filename, "."));
+            FileUtils.copyInputStreamToFile((InputStream) mailContent, tempFile);
+            content.getFiles().add(tempFile);
+        }
+        assert content.getBody() != null;
     }
 
     public ProcessorDefinition appendToRoute(ProcessorDefinition processorDefinition) {
@@ -135,7 +158,8 @@ public class MailToJSON implements ConfigurableCamelHandler, InitializingBean {
                             } else {
                                 node = nodeWrapper.getNode("mailtojson");
                             }
-                            JCRNodeWrapper jcrNodeWrapper = node.addNode(JCRContentUtils.findAvailableNodeName(node, decoderName), "jnt:gtwDecoderPath");
+                            JCRNodeWrapper jcrNodeWrapper = node.addNode(JCRContentUtils.findAvailableNodeName(node,
+                                    decoderName), "jnt:gtwDecoderPath");
                             jcrNodeWrapper.setProperty("decoderName", decoderName);
                             jcrNodeWrapper.setProperty("pathName", pathName);
                             jcrNodeWrapper.setProperty("pathReference", path);
@@ -166,7 +190,8 @@ public class MailToJSON implements ConfigurableCamelHandler, InitializingBean {
                         } else {
                             regexpsNode = node.addNode("regexps", "jnt:gtwRegexps");
                         }
-                        JCRNodeWrapper jcrNodeWrapper = regexpsNode.addNode(JCRContentUtils.findAvailableNodeName(regexpsNode, "regexp"), "jnt:gtwRegexp");
+                        JCRNodeWrapper jcrNodeWrapper = regexpsNode.addNode(JCRContentUtils.findAvailableNodeName(
+                                regexpsNode, "regexp"), "jnt:gtwRegexp");
                         jcrNodeWrapper.setProperty("regexp", regexp);
                         session.save();
                         return null;
@@ -229,10 +254,13 @@ public class MailToJSON implements ConfigurableCamelHandler, InitializingBean {
                             }
                         }
                         // init decoders path
-                        List<JCRNodeWrapper> decoderPaths = JCRContentUtils.getChildrenOfType(mailtojsonNode, "jnt:gtwDecoderPath");
+                        List<JCRNodeWrapper> decoderPaths = JCRContentUtils.getChildrenOfType(mailtojsonNode,
+                                "jnt:gtwDecoderPath");
                         for (JCRNodeWrapper decoderPath : decoderPaths) {
                             if (decoders.containsKey(decoderPath.getProperty("decoderName").getString())) {
-                                decoders.get(decoderPath.getProperty("decoderName").getString()).addPath(decoderPath.getProperty("pathName").getString(), decoderPath.getProperty("pathReference").getString());
+                                decoders.get(decoderPath.getProperty("decoderName").getString()).addPath(
+                                        decoderPath.getProperty("pathName").getString(), decoderPath.getProperty(
+                                        "pathReference").getString());
                             }
                         }
                     }

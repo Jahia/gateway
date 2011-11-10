@@ -30,7 +30,7 @@
         <property name="transformers">
             <map key-type="java.lang.String" value-type="org.jahia.modules.gateway.Transformer">
                 <entry key="mailtojson">
-                    <bean class="org.jahia.modules.gateway.MailToJSON">
+                    <bean class="org.jahia.modules.gateway.mail.MailToJSON">
                         <property name="jcrTemplate" ref="jcrTemplate"/>
                         <property name="regexps">
                             <list value-type="java.lang.String">

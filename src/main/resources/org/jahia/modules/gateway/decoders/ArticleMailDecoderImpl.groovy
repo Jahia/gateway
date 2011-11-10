@@ -3,10 +3,11 @@ package org.jahia.modules.gateway.decoders
 import java.security.Principal
 import javax.mail.Address
 import org.jahia.api.Constants
-import org.jahia.modules.gateway.MailDecoder
+import org.jahia.modules.gateway.mail.MailDecoder
 import org.jahia.services.usermanager.JahiaUserManagerService
 import org.json.JSONException
 import org.json.JSONObject
+import org.jahia.modules.gateway.mail.MailContent
 
 /**
  * Created by IntelliJ IDEA.
@@ -18,7 +19,7 @@ class ArticleMailDecoderImpl implements MailDecoder {
     Map<String, String> paths;
     JahiaUserManagerService userManagerService;
 
-    String decode(String title, String nodepath, String body, Address[] from) {
+    String decode(String title, String nodepath, MailContent mailContent, Address[] from) {
 
         try {
             JSONObject jsonObject = new JSONObject();
@@ -43,7 +44,7 @@ class ArticleMailDecoderImpl implements MailDecoder {
             // Parse body
             def text = "";
             boolean intro = true;
-            body.replaceAll("<br>", "\n").replaceAll("<br/>", "\n").eachLine {line, idx ->
+            mailContent.body.replaceAll("<br>", "\n").replaceAll("<br/>", "\n").eachLine {line, idx ->
                 if (!"".equals(line)) {
                     if (line.startsWith("tags:")) {
                         jsonObject.put("tags", line.substring(5))

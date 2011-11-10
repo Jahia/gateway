@@ -32,20 +32,32 @@
  */
 package org.jahia.modules.gateway;
 
+import org.apache.abdera.util.MimeTypeHelper;
 import org.apache.camel.Exchange;
 import org.apache.camel.Handler;
 import org.apache.camel.model.ProcessorDefinition;
+import org.apache.commons.io.FileUtils;
 import org.apache.log4j.Logger;
 import org.jahia.services.content.*;
+import org.jahia.services.content.nodetypes.ExtendedNodeType;
+import org.jahia.services.content.nodetypes.ExtendedPropertyType;
 import org.jahia.services.content.nodetypes.NodeTypeRegistry;
 import org.jahia.services.tags.TaggingService;
+import org.joda.time.DateTime;
+import org.joda.time.format.ISODateTimeFormat;
 import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
 
+import javax.activation.MimetypesFileTypeMap;
 import javax.jcr.RepositoryException;
 import javax.jcr.nodetype.NoSuchNodeTypeException;
+import javax.mail.internet.MimeUtility;
+import java.io.BufferedInputStream;
+import java.io.File;
+import java.io.IOException;
 import java.util.Iterator;
+import java.util.Locale;
 
 /**
  * This class will create nodes based on their JSON serialization.
@@ -90,7 +102,7 @@ public class JSONToJCRDeserializer implements CamelHandler {
                 assert nodetype != null;
 
                 // Check that nodetype exists
-                NodeTypeRegistry.getInstance().getNodeType(nodetype);
+                final ExtendedNodeType nodeType = NodeTypeRegistry.getInstance().getNodeType(nodetype);
 
                 final String name = jsonObject.getString("name");
                 assert name != null;
@@ -116,7 +128,7 @@ public class JSONToJCRDeserializer implements CamelHandler {
                                 JCRContentUtils.generateNodeName(name, 32));
                         logger.debug("adding subnode with name : " + availableNodeName);
                         JCRNodeWrapper newNode = node.addNode(availableNodeName, nodetype);
-                        setPropertiesOnNode(newNode, properties);
+                        setPropertiesOnNode(newNode, properties, nodeType);
                         //Manage childs
                         try {
                             if (jsonObject.has("childs")) {
@@ -126,7 +138,8 @@ public class JSONToJCRDeserializer implements CamelHandler {
                                     String childNodetype = childJSONObject.getString("nodetype");
                                     assert childNodetype != null;
                                     // Check that nodetype exists
-                                    NodeTypeRegistry.getInstance().getNodeType(childNodetype);
+                                    ExtendedNodeType childNodeType = NodeTypeRegistry.getInstance().getNodeType(
+                                            childNodetype);
                                     String childName = childJSONObject.getString("name");
                                     assert childName != null;
                                     JSONObject childProperties = childJSONObject.getJSONObject("properties");
@@ -135,7 +148,7 @@ public class JSONToJCRDeserializer implements CamelHandler {
                                             JCRContentUtils.generateNodeName(childName, 32));
                                     logger.debug("adding subnode with name : " + availableNodeName);
                                     JCRNodeWrapper childNode = newNode.addNode(childAvailableNodeName, childNodetype);
-                                    setPropertiesOnNode(childNode, childProperties);
+                                    setPropertiesOnNode(childNode, childProperties, childNodeType);
                                 }
                             }
                             if (jsonObject.has("tags")) {
@@ -166,15 +179,35 @@ public class JSONToJCRDeserializer implements CamelHandler {
         return processorDefinition.bean(this);
     }
 
-    private void setPropertiesOnNode(JCRNodeWrapper newNode, JSONObject properties) throws RepositoryException {
+    private void setPropertiesOnNode(JCRNodeWrapper newNode, JSONObject properties, ExtendedNodeType nodeType)
+            throws RepositoryException {
         Iterator keys = properties.keys();
         while (keys.hasNext()) {
             String property = (String) keys.next();
             try {
                 String value = (String) properties.get(property);
                 logger.debug("added property " + property + " with value " + value);
-                newNode.setProperty(property.replaceAll("_", ":"), value);
+                String name = property.replaceAll("_", ":");
+                int requiredType = nodeType.getPropertyDefinition(name).getRequiredType();
+                switch (requiredType) {
+                    case ExtendedPropertyType.DATE:
+                        DateTime dateTime = ISODateTimeFormat.dateOptionalTimeParser().parseDateTime(value);
+                        newNode.setProperty(name, dateTime.toCalendar(Locale.ENGLISH));
+                        break;
+                    case ExtendedPropertyType.REFERENCE:
+                    case ExtendedPropertyType.WEAKREFERENCE:
+                        File file = new File(value);
+                        JCRNodeWrapper files = newNode.getSession().getNode(newNode.getResolveSite().getPath()+"/files");
+                        JCRNodeWrapper reference = files.uploadFile(file.getName(), FileUtils.openInputStream(
+                                file), new MimetypesFileTypeMap().getContentType(file));
+                        newNode.setProperty(name,reference);
+                        break;
+                    default:
+                        newNode.setProperty(name, value);
+                }
             } catch (JSONException e) {
+                logger.error(e.getMessage(), e);
+            } catch (IOException e) {
                 logger.error(e.getMessage(), e);
             }
         }

@@ -14,7 +14,7 @@
     </div>
 </div>
 <div class="content-item-noborder">
-    <%--@elvariable id="transformer" type="org.jahia.modules.gateway.MailToJSON"--%>
+    <%--@elvariable id="transformer" type="org.jahia.modules.gateway.mail.MailToJSON"--%>
     <%--@elvariable id="transformers" type="java.util.Map"--%>
     <c:set var="transformer" value="${transformers[param.transformerName]}"/>
     <c:forEach items="${transformer.regexps}" var="regexp" varStatus="status">

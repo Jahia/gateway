@@ -30,20 +30,38 @@
  * between you and Jahia Limited. If you are unsure which license is appropriate
  * for your use, please contact the sales department at sales@jahia.com.
  */
-package org.jahia.modules.gateway;
+package org.jahia.modules.gateway.mail;
 
-import javax.mail.Address;
-import java.util.Map;
+import org.apache.log4j.Logger;
+
+import java.io.File;
+import java.util.LinkedList;
+import java.util.List;
 
 /**
  * Created by IntelliJ IDEA.
  *
  * @author : rincevent
  * @since : JAHIA 6.1
- *        Created : 11/8/11
+ *        Created : 11/10/11
  */
-public interface MailDecoder {
-    String decode(String title, String nodepath, String body, Address[] from) throws Exception;
-    void addPath(String name, String path);
-    Map<String,String> getPaths();
+public class MailContent {
+    private transient static Logger logger = Logger.getLogger(MailContent.class);
+    private String body = null;
+    private List<File> files = new LinkedList<File>();
+    public String getBody() {
+        return body;
+    }
+
+    public void setBody(String body) {
+        this.body = body;
+    }
+
+    public List<File> getFiles() {
+        return files;
+    }
+
+    public void setFiles(List<File> files) {
+        this.files = files;
+    }
 }

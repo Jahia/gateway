@@ -32,9 +32,11 @@
  */
 package org.jahia.modules.gateway.decoders;
 
+import org.apache.commons.lang.time.DateFormatUtils;
 import org.apache.log4j.Logger;
 import org.jahia.api.Constants;
-import org.jahia.modules.gateway.MailDecoder;
+import org.jahia.modules.gateway.mail.MailContent;
+import org.jahia.modules.gateway.mail.MailDecoder;
 import org.jahia.services.usermanager.JahiaUserManagerService;
 import org.json.JSONException;
 import org.json.JSONObject;
@@ -45,6 +47,8 @@ import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.Properties;
 import java.util.Set;
+
+import static java.util.Calendar.getInstance;
 
 /**
  * Created by IntelliJ IDEA.
@@ -58,7 +62,7 @@ public class NewsMailDecoderImpl implements MailDecoder {
     private Map<String, String> paths;
     private JahiaUserManagerService userManagerService;
 
-    public String decode(String title, String nodepath, String body, Address[] from) throws Exception {
+    public String decode(String title, String nodepath, MailContent mailContent, Address[] from) throws Exception {
         try {
             JSONObject jsonObject = new JSONObject();
             jsonObject.put("nodetype", "jnt:news");
@@ -67,9 +71,15 @@ public class NewsMailDecoderImpl implements MailDecoder {
             jsonObject.put("workspace", Constants.EDIT_WORKSPACE);
             jsonObject.put("path", paths.get(nodepath));
             Map<String, String> properties = new LinkedHashMap<String, String>();
-            properties.put("desc", body);
+            properties.put("desc", mailContent.getBody());
             properties.put("jcr:title", title);
+            properties.put("date", DateFormatUtils.ISO_DATETIME_TIME_ZONE_FORMAT.format(getInstance()));
+            if (!mailContent.getFiles().isEmpty()) {
+                properties.put("image", mailContent.getFiles().get(0).getAbsolutePath());
+            }
             jsonObject.put("properties", properties);
+            //Add a file if needed
+
             if (from != null && from.length > 0) {
                 Properties userProperties = new Properties();
                 userProperties.setProperty("j:email", from[0].toString());
