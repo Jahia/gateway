@@ -99,7 +99,7 @@ public class SQLStartpoint implements StartPointFormHandler, CamelStartPoint {
         datasource = request.getParameter("datasource");
         String update1 = request.getParameter("update");
         if(update1!=null) {
-            update = Boolean.valueOf(update1);
+            update = true;
         }
         try {
             template.doExecuteWithSystemSession(new JCRCallback<Object>() {
