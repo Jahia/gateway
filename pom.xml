@@ -39,7 +39,8 @@
     please contact the sales department at sales@jahia.com.
 -->
 
-<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
     <modelVersion>4.0.0</modelVersion>
     <parent>
         <artifactId>jahia-default-modules</artifactId>
@@ -52,6 +53,15 @@
     <packaging>war</packaging>
     <description>This is a custom module for running on a Jahia server.</description>
 
+    <dependencies>
+        <dependency>
+            <groupId>org.apache.camel</groupId>
+            <artifactId>camel-sql</artifactId>
+            <version>2.4.0</version>
+            <!-- use the same version as your Camel core version -->
+        </dependency>
+    </dependencies>
+
     <build>
         <plugins>
             <plugin>
@@ -62,8 +72,8 @@
                     <warSourceExcludes>resources/*.properties</warSourceExcludes>
                     <webResources>
                         <resource>
-                          <directory>${project.build.directory}/native2ascii</directory>
-                          <targetPath>resources</targetPath>
+                            <directory>${project.build.directory}/native2ascii</directory>
+                            <targetPath>resources</targetPath>
                         </resource>
                         <resource>
                             <directory>${project.build.directory}</directory>
@@ -72,22 +82,22 @@
                             </includes>
                         </resource>
                     </webResources>
-	                <archive>
-	                    <manifestEntries>
-	                    	<Implementation-Title>${project.name}</Implementation-Title>
-	                    	<Implementation-Version>${project.version}</Implementation-Version>
-	                    	<Implementation-Vendor>${jahia.manifest.vendor.name}</Implementation-Vendor>
-	                    	<Implementation-Vendor-Id>${jahia.manifest.vendor.id}</Implementation-Vendor-Id>
-	                    	<Implementation-URL>${jahia.manifest.vendor.url}</Implementation-URL>
-	                    	<Specification-Title>${project.name}</Specification-Title>
-	                    	<Specification-Version>${project.version}</Specification-Version>
-	                    	<Specification-Vendor>${jahia.manifest.vendor.name}</Specification-Vendor>
-	                        <package-name>${project.name}</package-name>
-	                        <depends>Default Jahia Templates</depends>
+                    <archive>
+                        <manifestEntries>
+                            <Implementation-Title>${project.name}</Implementation-Title>
+                            <Implementation-Version>${project.version}</Implementation-Version>
+                            <Implementation-Vendor>${jahia.manifest.vendor.name}</Implementation-Vendor>
+                            <Implementation-Vendor-Id>${jahia.manifest.vendor.id}</Implementation-Vendor-Id>
+                            <Implementation-URL>${jahia.manifest.vendor.url}</Implementation-URL>
+                            <Specification-Title>${project.name}</Specification-Title>
+                            <Specification-Version>${project.version}</Specification-Version>
+                            <Specification-Vendor>${jahia.manifest.vendor.name}</Specification-Vendor>
+                            <package-name>${project.name}</package-name>
+                            <depends>Default Jahia Templates</depends>
                             <root-folder>${project.artifactId}</root-folder>
                             <module-type>module</module-type>
-	                    </manifestEntries>
-	                </archive>
+                        </manifestEntries>
+                    </archive>
                     <archiveClasses>true</archiveClasses>
                 </configuration>
             </plugin>

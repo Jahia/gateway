@@ -1,5 +1,7 @@
 package org.jahia.modules.gateway.admin.forms;
 
+import org.jahia.modules.gateway.GatewayService;
+
 import javax.servlet.http.HttpServletRequest;
 
 /**
@@ -11,5 +13,5 @@ import javax.servlet.http.HttpServletRequest;
  */
 public interface StartPointFormHandler {
 
-    String parseForm(HttpServletRequest request) throws StartPointFormHandlerException;
+    void parseForm(HttpServletRequest request, String startPointType, String startPointName, final GatewayService gatewayService) throws StartPointFormHandlerException;
 }

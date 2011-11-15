@@ -6,8 +6,7 @@
   To change this template use File | Settings | File Templates.
 --%>
 <%@include file="/admin/include/header.inc" %>
-<%@ page import="org.jahia.bin.*" %>
-<%@ page import="java.util.*" %>
+<%@ page import="org.jahia.bin.JahiaAdministration" %>
 
 <%@ taglib uri="http://java.sun.com/jsp/jstl/functions" prefix="fn" %>
 <%@ taglib uri="http://java.sun.com/jsp/jstl/core" prefix="c" %>
@@ -91,6 +90,11 @@
                                     </select>
                                     <input type="submit"/>
                                 </form>
+                            </div>
+                            <div class="head headtop">
+                                <div class="object-title">
+                                    <fmt:message key="label.routes.startpoint.add" bundle="${gatewayBundle}"/>
+                                </div>
                             </div>
                             <%--@elvariable id="formHandlers" type="java.util.Set"--%>
                             <c:forEach items="${formHandlers}" var="handler">

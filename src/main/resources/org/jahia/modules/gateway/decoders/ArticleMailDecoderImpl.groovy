@@ -3,11 +3,11 @@ package org.jahia.modules.gateway.decoders
 import java.security.Principal
 import javax.mail.Address
 import org.jahia.api.Constants
+import org.jahia.modules.gateway.mail.MailContent
 import org.jahia.modules.gateway.mail.MailDecoder
 import org.jahia.services.usermanager.JahiaUserManagerService
 import org.json.JSONException
 import org.json.JSONObject
-import org.jahia.modules.gateway.mail.MailContent
 
 /**
  * Created by IntelliJ IDEA.
@@ -44,6 +44,8 @@ class ArticleMailDecoderImpl implements MailDecoder {
             // Parse body
             def text = "";
             boolean intro = true;
+            def files = mailContent.files.size();
+            def currentFile = 0;
             mailContent.body.replaceAll("<br>", "\n").replaceAll("<br/>", "\n").eachLine {line, idx ->
                 if (!"".equals(line)) {
                     if (line.startsWith("tags:")) {
@@ -61,18 +63,27 @@ class ArticleMailDecoderImpl implements MailDecoder {
                         jsonObject1.put("name", "paragraph-" + idx);
                         Map<String, String> childProperties = new LinkedHashMap<String, String>();
                         childProperties.put("body", text)
+                        if (files > 0 && currentFile < files) {
+                            childProperties.put("image", mailContent.files[currentFile++].absolutePath);
+                            childProperties.put("align", currentFile % 2 == 0 ? "left" : "right");
+                        }
                         jsonObject1.put("properties", childProperties)
                         jsonObject.append("childs", jsonObject1);
                     }
                     text = "";
                 }
             }
+
             if (!"".equals(text)) {
                 JSONObject jsonObject1 = new JSONObject();
                 jsonObject1.put("nodetype", "jnt:paragraph");
                 jsonObject1.put("name", "paragraph-last");
                 Map<String, String> childProperties = new LinkedHashMap<String, String>();
                 childProperties.put("body", text)
+                if (files > 0 && currentFile < files) {
+                    childProperties.put("image", mailContent.files[currentFile++].absolutePath);
+                    childProperties.put("align", currentFile % 2 == 0 ? "left" : "right");
+                }
                 jsonObject1.put("properties", childProperties)
                 jsonObject.append("childs", jsonObject1);
             }

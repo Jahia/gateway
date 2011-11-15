@@ -3,6 +3,8 @@ package org.jahia.modules.gateway.admin;
 import org.jahia.admin.AbstractAdministrationModule;
 import org.jahia.bin.Jahia;
 import org.jahia.bin.JahiaAdministration;
+import org.jahia.modules.gateway.CamelHandler;
+import org.jahia.modules.gateway.ConfigurableCamelHandler;
 import org.jahia.modules.gateway.GatewayService;
 import org.jahia.modules.gateway.admin.forms.StartPointFormHandler;
 import org.jahia.params.ProcessingContext;
@@ -44,25 +46,28 @@ public class GatewayAdministrationModule extends AbstractAdministrationModule {
         if ("addStartPoint".equals(operation)) {
             String startPointType = request.getParameter("startPointType");
             String startPointName = request.getParameter("startPointName");
-            String startPoint = startPointFormHandlers.get(startPointType).parseForm(request);
-            gatewayService.addRouteStartPoint(startPointName, startPoint);
+            startPointFormHandlers.get(startPointType).parseForm(request, startPointType, startPointName,
+                    gatewayService);
         } else if ("addRoute".equals(operation)) {
             String startPointName = request.getParameter("startPointName");
             String transformerName = request.getParameter("transformerName");
             String deserializerName = request.getParameter("deserializerName");
             String routeName = request.getParameter("routeName");
             if (startPointName != null && transformerName != null && deserializerName != null && routeName != null) {
-                gatewayService.addRoute(routeName, startPointName, Arrays.asList(transformerName,deserializerName));
+                gatewayService.addRoute(routeName, startPointName, Arrays.asList(transformerName, deserializerName));
             }
         } else if ("configureTransformer".equals(operation)) {
             String transformerType = request.getParameter("transformerType");
-            gatewayService.getTransformers().get(transformerType).configure(request);
+            CamelHandler camelHandler = gatewayService.getTransformers().get(transformerType);
+            if (camelHandler instanceof ConfigurableCamelHandler) {
+                ((ConfigurableCamelHandler) camelHandler).configure(request);
+            }
         }
         request.setAttribute("routeStartPoints", gatewayService.getRouteStartPoints());
         request.setAttribute("routes", gatewayService.getRoutes());
         request.setAttribute("transformers", gatewayService.getTransformers());
         request.setAttribute("deserializers", gatewayService.getDeserializers().keySet());
-        request.setAttribute("formHandlers",startPointFormHandlers.keySet());
+        request.setAttribute("formHandlers", startPointFormHandlers.keySet());
         JahiaAdministration.doRedirect(request, response, request.getSession(), getModuleRoot() + "/" + JSP_NAME);
     }
 

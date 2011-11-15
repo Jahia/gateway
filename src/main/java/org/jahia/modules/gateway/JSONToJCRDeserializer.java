@@ -32,7 +32,6 @@
  */
 package org.jahia.modules.gateway;
 
-import org.apache.abdera.util.MimeTypeHelper;
 import org.apache.camel.Exchange;
 import org.apache.camel.Handler;
 import org.apache.camel.model.ProcessorDefinition;
@@ -40,6 +39,7 @@ import org.apache.commons.io.FileUtils;
 import org.apache.log4j.Logger;
 import org.jahia.services.content.*;
 import org.jahia.services.content.nodetypes.ExtendedNodeType;
+import org.jahia.services.content.nodetypes.ExtendedPropertyDefinition;
 import org.jahia.services.content.nodetypes.ExtendedPropertyType;
 import org.jahia.services.content.nodetypes.NodeTypeRegistry;
 import org.jahia.services.tags.TaggingService;
@@ -50,10 +50,9 @@ import org.json.JSONException;
 import org.json.JSONObject;
 
 import javax.activation.MimetypesFileTypeMap;
+import javax.jcr.PathNotFoundException;
 import javax.jcr.RepositoryException;
 import javax.jcr.nodetype.NoSuchNodeTypeException;
-import javax.mail.internet.MimeUtility;
-import java.io.BufferedInputStream;
 import java.io.File;
 import java.io.IOException;
 import java.util.Iterator;
@@ -92,7 +91,7 @@ public class JSONToJCRDeserializer implements CamelHandler {
     }
 
     @Handler
-    public void handleExchange(Exchange exchange) {
+    public void handleExchange(final Exchange exchange) {
         if (exchange != null && exchange.getIn() != null && exchange.getIn().getBody().toString().startsWith("{")) {
             try {
                 String body = exchange.getIn().getBody().toString();
@@ -102,8 +101,8 @@ public class JSONToJCRDeserializer implements CamelHandler {
                 assert nodetype != null;
 
                 // Check that nodetype exists
-                final ExtendedNodeType nodeType = NodeTypeRegistry.getInstance().getNodeType(nodetype);
-
+                final ExtendedNodeType extendedNodeType = NodeTypeRegistry.getInstance().getNodeType(nodetype);
+                assert extendedNodeType != null;
                 final String name = jsonObject.getString("name");
                 assert name != null;
 
@@ -123,43 +122,11 @@ public class JSONToJCRDeserializer implements CamelHandler {
                         org.jahia.utils.LanguageCodeConverters.languageCodeToLocale(locale), new JCRCallback<Object>() {
                     public Object doInJCR(JCRSessionWrapper session) throws RepositoryException {
                         logger.debug("Getting parent node with path : " + path);
-                        JCRNodeWrapper node = session.getNode(path);
-                        String availableNodeName = JCRContentUtils.findAvailableNodeName(node,
-                                JCRContentUtils.generateNodeName(name, 32));
-                        logger.debug("adding subnode with name : " + availableNodeName);
-                        JCRNodeWrapper newNode = node.addNode(availableNodeName, nodetype);
-                        setPropertiesOnNode(newNode, properties, nodeType);
-                        //Manage childs
-                        try {
-                            if (jsonObject.has("childs")) {
-                                JSONArray childs = jsonObject.getJSONArray("childs");
-                                for (int i = 0; i < childs.length(); i++) {
-                                    JSONObject childJSONObject = childs.getJSONObject(i);
-                                    String childNodetype = childJSONObject.getString("nodetype");
-                                    assert childNodetype != null;
-                                    // Check that nodetype exists
-                                    ExtendedNodeType childNodeType = NodeTypeRegistry.getInstance().getNodeType(
-                                            childNodetype);
-                                    String childName = childJSONObject.getString("name");
-                                    assert childName != null;
-                                    JSONObject childProperties = childJSONObject.getJSONObject("properties");
-                                    assert childProperties != null;
-                                    String childAvailableNodeName = JCRContentUtils.findAvailableNodeName(node,
-                                            JCRContentUtils.generateNodeName(childName, 32));
-                                    logger.debug("adding subnode with name : " + availableNodeName);
-                                    JCRNodeWrapper childNode = newNode.addNode(childAvailableNodeName, childNodetype);
-                                    setPropertiesOnNode(childNode, childProperties, childNodeType);
-                                }
-                            }
-                            if (jsonObject.has("tags")) {
-                                String[] tags = jsonObject.getString("tags").split(",");
-                                String siteKey = newNode.getResolveSite().getSiteKey();
-                                for (String tag : tags) {
-                                    taggingService.tag(newNode.getPath(), tag.trim(), siteKey, true, session);
-                                }
-                            }
-                        } catch (JSONException e) {
-                            logger.error(e.getMessage(), e);
+                        Object header = exchange.getIn().getHeader(Constants.UPDATE_ONLY);
+                        if (header==null || !(Boolean) header) {
+                            createNewNode(session, path, name, nodetype, properties, extendedNodeType, jsonObject);
+                        } else {
+                            updateExistingNode(session, path, name, properties, extendedNodeType, jsonObject, nodetype);
                         }
                         session.save();
                         return null;
@@ -175,6 +142,60 @@ public class JSONToJCRDeserializer implements CamelHandler {
         }
     }
 
+    private void updateExistingNode(JCRSessionWrapper session, String path, String name, JSONObject properties,
+                                    ExtendedNodeType extendedNodeType, JSONObject jsonObject, String nodetype)
+            throws RepositoryException {
+        try {
+            JCRNodeWrapper node = session.getNode(path + "/" + JCRContentUtils.generateNodeName(name,
+                32));
+            setPropertiesOnNode(node, properties, extendedNodeType);
+        } catch (PathNotFoundException e) {
+            createNewNode(session, path, name, nodetype, properties, extendedNodeType, jsonObject);
+        }
+    }
+
+    private void createNewNode(JCRSessionWrapper session, String path, String name, String nodetype,
+                               JSONObject properties, ExtendedNodeType extendedNodeType, JSONObject jsonObject)
+            throws RepositoryException {
+        JCRNodeWrapper node = session.getNode(path);
+        String availableNodeName = JCRContentUtils.findAvailableNodeName(node, JCRContentUtils.generateNodeName(name,
+                32));
+        logger.debug("adding subnode with name : " + availableNodeName);
+        JCRNodeWrapper newNode = node.addNode(availableNodeName, nodetype);
+        setPropertiesOnNode(newNode, properties, extendedNodeType);
+        //Manage childs
+        try {
+            if (jsonObject.has("childs")) {
+                JSONArray childs = jsonObject.getJSONArray("childs");
+                for (int i = 0; i < childs.length(); i++) {
+                    JSONObject childJSONObject = childs.getJSONObject(i);
+                    String childNodetype = childJSONObject.getString("nodetype");
+                    assert childNodetype != null;
+                    // Check that nodetype exists
+                    ExtendedNodeType childNodeType = NodeTypeRegistry.getInstance().getNodeType(childNodetype);
+                    String childName = childJSONObject.getString("name");
+                    assert childName != null;
+                    JSONObject childProperties = childJSONObject.getJSONObject("properties");
+                    assert childProperties != null;
+                    String childAvailableNodeName = JCRContentUtils.findAvailableNodeName(node,
+                            JCRContentUtils.generateNodeName(childName, 32));
+                    logger.debug("adding subnode with name : " + availableNodeName);
+                    JCRNodeWrapper childNode = newNode.addNode(childAvailableNodeName, childNodetype);
+                    setPropertiesOnNode(childNode, childProperties, childNodeType);
+                }
+            }
+            if (jsonObject.has("tags")) {
+                String[] tags = jsonObject.getString("tags").split(",");
+                String siteKey = newNode.getResolveSite().getSiteKey();
+                for (String tag : tags) {
+                    taggingService.tag(newNode.getPath(), tag.trim(), siteKey, true, session);
+                }
+            }
+        } catch (JSONException e) {
+            logger.error(e.getMessage(), e);
+        }
+    }
+
     public ProcessorDefinition appendToRoute(ProcessorDefinition processorDefinition) {
         return processorDefinition.bean(this);
     }
@@ -186,24 +207,46 @@ public class JSONToJCRDeserializer implements CamelHandler {
             String property = (String) keys.next();
             try {
                 String value = (String) properties.get(property);
+                boolean needUpdate;
                 logger.debug("added property " + property + " with value " + value);
                 String name = property.replaceAll("_", ":");
-                int requiredType = nodeType.getPropertyDefinition(name).getRequiredType();
-                switch (requiredType) {
-                    case ExtendedPropertyType.DATE:
-                        DateTime dateTime = ISODateTimeFormat.dateOptionalTimeParser().parseDateTime(value);
-                        newNode.setProperty(name, dateTime.toCalendar(Locale.ENGLISH));
-                        break;
-                    case ExtendedPropertyType.REFERENCE:
-                    case ExtendedPropertyType.WEAKREFERENCE:
-                        File file = new File(value);
-                        JCRNodeWrapper files = newNode.getSession().getNode(newNode.getResolveSite().getPath()+"/files");
-                        JCRNodeWrapper reference = files.uploadFile(file.getName(), FileUtils.openInputStream(
-                                file), new MimetypesFileTypeMap().getContentType(file));
-                        newNode.setProperty(name,reference);
-                        break;
-                    default:
-                        newNode.setProperty(name, value);
+                try {
+                    needUpdate = !(newNode.getProperty(name).getValue().getString().equals(value));
+                } catch (RepositoryException e1) {
+                    needUpdate = true;
+                }
+                if (needUpdate) {
+                    ExtendedPropertyDefinition propertyDefinition = nodeType.getPropertyDefinition(name);
+                    if (propertyDefinition == null) {
+                        ExtendedNodeType[] declaredSupertypes = nodeType.getDeclaredSupertypes();
+                        for (ExtendedNodeType declaredSupertype : declaredSupertypes) {
+                            propertyDefinition = declaredSupertype.getPropertyDefinition(name);
+                            if (propertyDefinition != null) {
+                                break;
+                            }
+                        }
+                    }
+                    int requiredType = 0;
+                    if (propertyDefinition != null) {
+                        requiredType = propertyDefinition.getRequiredType();
+                    }
+                    switch (requiredType) {
+                        case ExtendedPropertyType.DATE:
+                            DateTime dateTime = ISODateTimeFormat.dateOptionalTimeParser().parseDateTime(value);
+                            newNode.setProperty(name, dateTime.toCalendar(Locale.ENGLISH));
+                            break;
+                        case ExtendedPropertyType.REFERENCE:
+                        case ExtendedPropertyType.WEAKREFERENCE:
+                            File file = new File(value);
+                            JCRNodeWrapper files = newNode.getSession().getNode(
+                                    newNode.getResolveSite().getPath() + "/files");
+                            JCRNodeWrapper reference = files.uploadFile(file.getName(), FileUtils.openInputStream(file),
+                                    new MimetypesFileTypeMap().getContentType(file));
+                            newNode.setProperty(name, reference);
+                            break;
+                        default:
+                            newNode.setProperty(name, value);
+                    }
                 }
             } catch (JSONException e) {
                 logger.error(e.getMessage(), e);

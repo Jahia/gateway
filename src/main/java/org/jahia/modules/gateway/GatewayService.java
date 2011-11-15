@@ -36,7 +36,6 @@ import org.apache.camel.CamelContext;
 import org.apache.camel.CamelContextAware;
 import org.apache.camel.builder.RouteBuilder;
 import org.apache.camel.model.ProcessorDefinition;
-import org.apache.camel.model.RouteDefinition;
 import org.apache.log4j.Logger;
 import org.jahia.services.content.JCRCallback;
 import org.jahia.services.content.JCRNodeWrapper;
@@ -60,9 +59,10 @@ public class GatewayService implements CamelContextAware, InitializingBean {
     private transient static Logger logger = Logger.getLogger(GatewayService.class);
     private CamelContext camelContext;
     private Map<String, CamelHandler> deserializers;
-    private Map<String, ConfigurableCamelHandler> transformers;
-    private Map<String, String> routeStartPoints;
+    private Map<String, CamelHandler> transformers;
+    private Map<String, CamelStartPoint> routeStartPoints;
     private Map<String, String> routes;
+    private CamelStartPointFactory camelStartPointFactory;
     private JCRTemplate template;
 
     /**
@@ -87,11 +87,11 @@ public class GatewayService implements CamelContextAware, InitializingBean {
         this.deserializers = deserializers;
     }
 
-    public void setTransformers(Map<String, ConfigurableCamelHandler> transformers) {
+    public void setTransformers(Map<String, CamelHandler> transformers) {
         this.transformers = transformers;
     }
 
-    public void setRouteStartPoints(Map<String, String> routeStartPoints) {
+    public void setRouteStartPoints(Map<String, CamelStartPoint> routeStartPoints) {
         this.routeStartPoints = routeStartPoints;
     }
 
@@ -111,13 +111,13 @@ public class GatewayService implements CamelContextAware, InitializingBean {
      */
     public void afterPropertiesSet() throws Exception {
         if (transformers == null) {
-            transformers = new HashMap<String, ConfigurableCamelHandler>();
+            transformers = new HashMap<String, CamelHandler>();
         }
         if (deserializers == null) {
             deserializers = new HashMap<String, CamelHandler>();
         }
         if (routeStartPoints == null) {
-            routeStartPoints = new HashMap<String, String>();
+            routeStartPoints = new HashMap<String, CamelStartPoint>();
         }
         if (routes == null) {
             routes = new HashMap<String, String>();
@@ -132,7 +132,15 @@ public class GatewayService implements CamelContextAware, InitializingBean {
                     NodeIterator nodes = node.getNodes();
                     while (nodes.hasNext()) {
                         JCRNodeWrapper next = (JCRNodeWrapper) nodes.nextNode();
-                        routeStartPoints.put(next.getName(), next.getProperty("uri").getString());
+                        try {
+                            routeStartPoints.put(next.getName(), camelStartPointFactory.createCamelStartPoint(next));
+                        } catch (IllegalAccessException e) {
+                            logger.error(e.getMessage(), e);
+                        } catch (InstantiationException e) {
+                            logger.error(e.getMessage(), e);
+                        } catch (ClassNotFoundException e) {
+                            logger.error(e.getMessage(), e);
+                        }
                     }
                     node = session.getNode("/gateway/routes");
                     nodes = node.getNodes();
@@ -174,7 +182,7 @@ public class GatewayService implements CamelContextAware, InitializingBean {
                     }
                 });
             } catch (RepositoryException e) {
-                e.printStackTrace();  //To change body of catch statement use File | Settings | File Templates.
+                e.printStackTrace();
             }
         }
     }
@@ -184,7 +192,7 @@ public class GatewayService implements CamelContextAware, InitializingBean {
             camelContext.addRoutes(new RouteBuilder() {
                 @Override
                 public void configure() throws Exception {
-                    ProcessorDefinition route = from(routeStartPoints.get(routeStartPointKey));
+                    ProcessorDefinition route = routeStartPoints.get(routeStartPointKey).startRoute(this);
                     for (String handler : handlers) {
                         if(transformers.containsKey(handler)) {
                             route = transformers.get(handler).appendToRoute(route);
@@ -202,24 +210,7 @@ public class GatewayService implements CamelContextAware, InitializingBean {
         return false;
     }
 
-    public void addRouteStartPoint(final String name, final String route) {
-        routeStartPoints.put(name, route);
-        try {
-            template.doExecuteWithSystemSession(new JCRCallback<Object>() {
-                public Object doInJCR(JCRSessionWrapper session) throws RepositoryException {
-                    JCRNodeWrapper node = session.getNode("/gateway/startPoints");
-                    JCRNodeWrapper jcrNodeWrapper = node.addNode(name, "jnt:gtwStartPoint");
-                    jcrNodeWrapper.setProperty("uri", route);
-                    session.save();
-                    return null;
-                }
-            });
-        } catch (RepositoryException e) {
-            e.printStackTrace();  //To change body of catch statement use File | Settings | File Templates.
-        }
-    }
-
-    public Map<String, String> getRouteStartPoints() {
+    public Map<String, CamelStartPoint> getRouteStartPoints() {
         return routeStartPoints;
     }
 
@@ -231,11 +222,15 @@ public class GatewayService implements CamelContextAware, InitializingBean {
         return deserializers;
     }
 
-    public Map<String, ConfigurableCamelHandler> getTransformers() {
+    public Map<String, CamelHandler> getTransformers() {
         return transformers;
     }
 
     public void setTemplate(JCRTemplate template) {
         this.template = template;
+    }
+
+    public void setCamelStartPointFactory(CamelStartPointFactory camelStartPointFactory) {
+        this.camelStartPointFactory = camelStartPointFactory;
     }
 }

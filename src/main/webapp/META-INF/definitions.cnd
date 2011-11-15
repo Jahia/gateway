@@ -19,7 +19,9 @@
 [jnt:gtwStartPoints] > nt:base
 + * (jnt:gtwStartPoint)
 
-[jnt:gtwStartPoint] > nt:base
+[jnt:gtwStartPoint] mixin
+
+[jnt:gmailstartpoint] > nt:base, jnt:gtwStartPoint
 - uri (string) indexed=no
 
 [jnt:gtwTransformers] > nt:base
@@ -39,3 +41,14 @@
 - decoderName (string) indexed=no
 - pathName (string) indexed=no
 - pathReference (string) indexed=no
+
+[jnt:sqlstartpoint] > nt:base, jnt:gtwStartPoint
+- frequency (long)
+- sql (string)
+- datasource (string)
+- update (boolean)
+
+[jnt:sqlunstructuredContent] > jnt:content, jmix:droppableContent
+- * (string)
+
+[jnt:sqlPricing] > jnt:content, jmix:siteComponent, mix:title
