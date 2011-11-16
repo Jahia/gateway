@@ -68,7 +68,7 @@ public class SQLToJSONHandler implements ConfigurableCamelHandler {
             jsonObject.put("nodetype", "jnt:sqlunstructuredContent");
             jsonObject.put("name", datas.get("name"));
             jsonObject.put("locale", "en");
-            jsonObject.put("workspace", Constants.LIVE_WORKSPACE);
+            jsonObject.put("workspace", Constants.EDIT_WORKSPACE);
             jsonObject.put("path", "/sites/systemsite/contents/sqls");
             Map<String, String> properties = new LinkedHashMap<String, String>();
             for (String key : datas.keySet()) {

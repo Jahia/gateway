@@ -48,10 +48,13 @@
 - datasource (string)
 - update (boolean)
 
-[jnt:sqlunstructuredContent] > jnt:content, jmix:droppableContent
+[jnt:sqlunstructuredContent] > jnt:content, jmix:droppableContent, jmix:autoPublish
 - * (string)
 
 [jnt:sqlPricing] > jnt:content, jmix:siteComponent, mix:title
+- priceRef (weakreference) mandatory < jmix:droppableContent
+- description (string) mandatory
+- image (weakreference, picker[type='image']) mandatory
 
 [jnt:privateNote] > jnt:content, jmix:droppableContent, mix:title
 - note (string, richtext)

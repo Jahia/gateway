@@ -1,3 +1,4 @@
+<%--@elvariable id="currentNode" type="org.jahia.services.content.JCRNodeWrapper"--%>
 <%@ taglib prefix="jcr" uri="http://www.jahia.org/tags/jcr" %>
 <%@ taglib prefix="fmt" uri="http://java.sun.com/jsp/jstl/fmt" %>
 <%@ taglib prefix="c" uri="http://java.sun.com/jsp/jstl/core" %>
@@ -10,15 +11,15 @@
   To change this template use File | Settings | File Templates.
 --%>
 <%@ page contentType="text/html;charset=UTF-8" language="java" %>
-<jcr:node path="/sites/systemsite/contents/sqls" var="pricings"/>
 <jsp:useBean id="currentDate" class="java.util.Date"/>
-<span>${currentNode.properties["jcr:title"].string} : <fmt:formatDate type="both" value="${currentDate}" dateStyle="long" timeStyle="medium"/></span>
-
+<span>CAMEL - ${currentNode.properties["jcr:title"].string} : <fmt:formatDate type="both" value="${currentDate}"
+                                                                      dateStyle="long" timeStyle="medium"/></span>
+<c:set var="pricing" value="${currentNode.properties['priceRef'].node}"/>
+<template:addCacheDependency node="${pricing}"/>
+<p>
+    ${currentNode.properties["description"].string}<br/>
+    <span>${pricing.properties["price"].string}&nbsp;€</span>
+</p>
 <div>
-    <ol>
-        <c:forEach items="${pricings.nodes}" var="pricing">
-            <template:addCacheDependency node="${pricing}"/>
-            <li>${pricing.properties["name"].string} = ${pricing.properties["price"].string}€</li>
-        </c:forEach>
-    </ol>
+    <img src="${currentNode.properties['image'].node.url}" width="260px" height="200px"/>
 </div>
