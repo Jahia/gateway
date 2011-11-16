@@ -34,27 +34,7 @@
                             <jsp:param name="mode" value="server"/>
                         </jsp:include>
                         <div id="content" class="fit">
-                            <div class="head headtop">
-                                <div class="object-title">
-                                    <fmt:message key="label.routes.list" bundle="${gatewayBundle}"/>
-                                </div>
-                            </div>
-                            <div class="content-item-noborder">
-                                <c:forEach items="${routes}" var="route" varStatus="status">
-                                    <span>${status.count}&nbsp;:&nbsp;${route}</span><br/>
-                                </c:forEach>
-                            </div>
-                            <div class="head headtop">
-                                <div class="object-title">
-                                    <fmt:message key="label.routes.startpoint.list" bundle="${gatewayBundle}"/>
-                                </div>
-                            </div>
-                            <div class="content-item-noborder">
-                                <%--@elvariable id="routeStartPoints" type="java.util.Map"--%>
-                                <c:forEach items="${routeStartPoints}" var="route" varStatus="status">
-                                    <span>${status.count}&nbsp;:&nbsp;${route}</span><br/>
-                                </c:forEach>
-                            </div>
+                            <%--Form to add a new route--%>
                             <div class="head headtop">
                                 <div class="object-title">
                                     <fmt:message key="label.routes.add" bundle="${gatewayBundle}"/>
@@ -64,7 +44,10 @@
                                 <form action="<%=JahiaAdministration.composeActionURL(request, response, "", "")%>">
                                     <input type="hidden" name="operation" value="addRoute"/>
                                     <input type="hidden" name="do" value="gateway"/>
-                                    <input type="text" name="routeName" maxlength="32" size="16"/>
+                                    <label for="routeName"><fmt:message key="label.route.name"
+                                                                        bundle="${gatewayBundle}"/></label>
+                                    <input type="text" name="routeName" id="routeName" maxlength="32" size="16"/>
+
                                     <select name="startPointName">
                                         <c:forEach items="${routeStartPoints}" var="startPoint">
                                             <option value="${startPoint.key}">
@@ -72,6 +55,7 @@
                                             </option>
                                         </c:forEach>
                                     </select>
+
                                     <select name="transformerName">
                                         <%--@elvariable id="transformers" type="java.util.Map"--%>
                                         <c:forEach items="${transformers}" var="transformer">
@@ -91,6 +75,18 @@
                                     <input type="submit"/>
                                 </form>
                             </div>
+                            <%--Display list of active routes--%>
+                            <div class="head headtop">
+                                <div class="object-title">
+                                    <fmt:message key="label.routes.list" bundle="${gatewayBundle}"/>
+                                </div>
+                            </div>
+                            <div class="content-item-noborder">
+                                <c:forEach items="${routes}" var="route" varStatus="status">
+                                    <span>${status.count}&nbsp;:&nbsp;${route}</span><br/>
+                                </c:forEach>
+                            </div>
+                            <%--Form to add new start point--%>
                             <div class="head headtop">
                                 <div class="object-title">
                                     <fmt:message key="label.routes.startpoint.add" bundle="${gatewayBundle}"/>
@@ -100,6 +96,19 @@
                             <c:forEach items="${formHandlers}" var="handler">
                                 <jsp:include page="startpoints/${handler}.form.jsp"/>
                             </c:forEach>
+                            <%--Display List of start points--%>
+                            <div class="head headtop">
+                                <div class="object-title">
+                                    <fmt:message key="label.routes.startpoint.list" bundle="${gatewayBundle}"/>
+                                </div>
+                            </div>
+                            <div class="content-item-noborder">
+                                <%--@elvariable id="routeStartPoints" type="java.util.Map"--%>
+                                <c:forEach items="${routeStartPoints}" var="route" varStatus="status">
+                                    <span>${status.count}&nbsp;:&nbsp;${route}</span><br/>
+                                </c:forEach>
+                            </div>
+                            <%--Display all transformers form--%>
                             <c:forEach items="${transformers}" var="transformer">
                                 <jsp:include page="transformers/${transformer.key}.configuration.jsp">
                                     <jsp:param name="transformerName" value="${transformer.key}"/>

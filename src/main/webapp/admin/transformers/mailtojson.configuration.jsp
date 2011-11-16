@@ -3,40 +3,13 @@
 <%@ taglib prefix="utility" uri="http://www.jahia.org/tags/utilityLib" %>
 <%@ page import="org.jahia.bin.JahiaAdministration" %>
 <utility:setBundle basename="JahiaGateway" var="gatewayBundle" templateName="Jahia Gateway" useUILocale="true"/>
+<%--@elvariable id="transformer" type="org.jahia.modules.gateway.mail.MailToJSON"--%>
+<%--@elvariable id="transformers" type="java.util.Map"--%>
+<c:set var="transformer" value="${transformers[param.transformerName]}"/>
 <div class="head headtop">
     <div class="object-title">
         <fmt:message key="label.mailtojson.configure" bundle="${gatewayBundle}"/>
     </div>
-</div>
-<div class="head headtop">
-    <div class="object-title">
-        <fmt:message key="label.mailtojson.configure.regexp.list" bundle="${gatewayBundle}"/>
-    </div>
-</div>
-<div class="content-item-noborder">
-    <%--@elvariable id="transformer" type="org.jahia.modules.gateway.mail.MailToJSON"--%>
-    <%--@elvariable id="transformers" type="java.util.Map"--%>
-    <c:set var="transformer" value="${transformers[param.transformerName]}"/>
-    <c:forEach items="${transformer.regexps}" var="regexp" varStatus="status">
-        <span>${status.count}&nbsp;:&nbsp;${regexp}</span><br/>
-    </c:forEach>
-</div>
-<div class="head headtop">
-    <div class="object-title">
-        <fmt:message key="label.mailtojson.configure.decoders.path.list" bundle="${gatewayBundle}"/>
-    </div>
-</div>
-<div class="content-item-noborder">
-    <ol>
-        <c:forEach items="${transformer.decoders}" var="decoder" varStatus="status">
-            <li>${decoder.key}</li>
-            <ol>
-                <c:forEach items="${decoder.value.paths}" var="mailDecoder" varStatus="mailStatus">
-                    <li>${mailStatus.count}&nbsp;:&nbsp;${mailDecoder}</li>
-                </c:forEach>
-            </ol>
-        </c:forEach>
-    </ol>
 </div>
 <div class="head headtop">
     <div class="object-title">
@@ -53,6 +26,17 @@
         <input type="submit"/>
     </form>
 </div>
+<div class="head headtop">
+    <div class="object-title">
+        <fmt:message key="label.mailtojson.configure.regexp.list" bundle="${gatewayBundle}"/>
+    </div>
+</div>
+<div class="content-item-noborder">
+    <c:forEach items="${transformer.regexps}" var="regexp" varStatus="status">
+        <span>${status.count}&nbsp;:&nbsp;${regexp}</span><br/>
+    </c:forEach>
+</div>
+
 <div class="head headtop">
     <div class="object-title">
         <fmt:message key="label.mailtojson.configure.decoder.path.add" bundle="${gatewayBundle}"/>
@@ -76,3 +60,22 @@
         <input type="submit"/>
     </form>
 </div>
+
+<div class="head headtop">
+    <div class="object-title">
+        <fmt:message key="label.mailtojson.configure.decoders.path.list" bundle="${gatewayBundle}"/>
+    </div>
+</div>
+<div class="content-item-noborder">
+    <ol>
+        <c:forEach items="${transformer.decoders}" var="decoder" varStatus="status">
+            <li>${decoder.key}</li>
+            <ol>
+                <c:forEach items="${decoder.value.paths}" var="mailDecoder" varStatus="mailStatus">
+                    <li>${mailStatus.count}&nbsp;:&nbsp;${mailDecoder}</li>
+                </c:forEach>
+            </ol>
+        </c:forEach>
+    </ol>
+</div>
+

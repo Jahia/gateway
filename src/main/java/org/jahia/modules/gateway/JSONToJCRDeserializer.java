@@ -122,11 +122,21 @@ public class JSONToJCRDeserializer implements CamelHandler {
                         org.jahia.utils.LanguageCodeConverters.languageCodeToLocale(locale), new JCRCallback<Object>() {
                     public Object doInJCR(JCRSessionWrapper session) throws RepositoryException {
                         logger.debug("Getting parent node with path : " + path);
+                        boolean saveFileUnderNode = false;
+                        try {
+                            if (jsonObject.has("saveFileUnderNewlyCreatedNode")) {
+                                saveFileUnderNode = jsonObject.getBoolean("saveFileUnderNewlyCreatedNode");
+                            }
+                        } catch (JSONException e) {
+                            logger.error(e.getMessage(), e);
+                        }
                         Object header = exchange.getIn().getHeader(Constants.UPDATE_ONLY);
-                        if (header==null || !(Boolean) header) {
-                            createNewNode(session, path, name, nodetype, properties, extendedNodeType, jsonObject);
+                        if (header == null || !(Boolean) header) {
+                            createNewNode(session, path, name, nodetype, properties, extendedNodeType, jsonObject,
+                                    saveFileUnderNode);
                         } else {
-                            updateExistingNode(session, path, name, properties, extendedNodeType, jsonObject, nodetype);
+                            updateExistingNode(session, path, name, properties, extendedNodeType, jsonObject, nodetype,
+                                    saveFileUnderNode);
                         }
                         session.save();
                         return null;
@@ -143,20 +153,19 @@ public class JSONToJCRDeserializer implements CamelHandler {
     }
 
     private void updateExistingNode(JCRSessionWrapper session, String path, String name, JSONObject properties,
-                                    ExtendedNodeType extendedNodeType, JSONObject jsonObject, String nodetype)
-            throws RepositoryException {
+                                    ExtendedNodeType extendedNodeType, JSONObject jsonObject, String nodetype,
+                                    boolean saveFileUnderNode) throws RepositoryException {
         try {
-            JCRNodeWrapper node = session.getNode(path + "/" + JCRContentUtils.generateNodeName(name,
-                32));
+            JCRNodeWrapper node = session.getNode(path + "/" + JCRContentUtils.generateNodeName(name, 32));
             setPropertiesOnNode(node, properties, extendedNodeType);
         } catch (PathNotFoundException e) {
-            createNewNode(session, path, name, nodetype, properties, extendedNodeType, jsonObject);
+            createNewNode(session, path, name, nodetype, properties, extendedNodeType, jsonObject, saveFileUnderNode);
         }
     }
 
     private void createNewNode(JCRSessionWrapper session, String path, String name, String nodetype,
-                               JSONObject properties, ExtendedNodeType extendedNodeType, JSONObject jsonObject)
-            throws RepositoryException {
+                               JSONObject properties, ExtendedNodeType extendedNodeType, JSONObject jsonObject,
+                               boolean saveFileUnderNode) throws RepositoryException {
         JCRNodeWrapper node = session.getNode(path);
         String availableNodeName = JCRContentUtils.findAvailableNodeName(node, JCRContentUtils.generateNodeName(name,
                 32));
@@ -191,6 +200,19 @@ public class JSONToJCRDeserializer implements CamelHandler {
                     taggingService.tag(newNode.getPath(), tag.trim(), siteKey, true, session);
                 }
             }
+            if (saveFileUnderNode && jsonObject.has("files")) {
+                MimetypesFileTypeMap mimetypesFileTypeMap = new MimetypesFileTypeMap();
+                JSONArray files = jsonObject.getJSONArray("files");
+                for(int i=0;i<files.length();i++) {
+                    try {
+                        File file = new File(files.getString(i));
+                        newNode.uploadFile(file.getName(), FileUtils.openInputStream(file),
+                                mimetypesFileTypeMap.getContentType(file));
+                    } catch (IOException e) {
+                        logger.error(e.getMessage(), e);
+                    }
+                }
+            }
         } catch (JSONException e) {
             logger.error(e.getMessage(), e);
         }
@@ -200,8 +222,7 @@ public class JSONToJCRDeserializer implements CamelHandler {
         return processorDefinition.bean(this);
     }
 
-    private void setPropertiesOnNode(JCRNodeWrapper newNode, JSONObject properties, ExtendedNodeType nodeType)
-            throws RepositoryException {
+    private void setPropertiesOnNode(JCRNodeWrapper newNode, JSONObject properties, ExtendedNodeType nodeType) throws RepositoryException {
         Iterator keys = properties.keys();
         while (keys.hasNext()) {
             String property = (String) keys.next();

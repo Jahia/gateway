@@ -132,4 +132,15 @@ public class SQLStartpoint implements StartPointFormHandler, CamelStartPoint {
         exchange.getOut().setHeader(Constants.UPDATE_ONLY, update);
         exchange.getOut().setBody(exchange.getIn().getBody());
     }
+
+    @Override
+    public String toString() {
+        final StringBuilder sb = new StringBuilder();
+        sb.append("{datasource='").append(datasource).append('\'');
+        sb.append(", sql='").append(sql).append('\'');
+        sb.append(", frequency=").append(frequency);
+        sb.append(", update=").append(update);
+        sb.append('}');
+        return sb.toString();
+    }
 }

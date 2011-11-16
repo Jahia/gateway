@@ -52,3 +52,10 @@
 - * (string)
 
 [jnt:sqlPricing] > jnt:content, jmix:siteComponent, mix:title
+
+[jnt:privateNote] > jnt:content, jmix:droppableContent, mix:title
+- note (string, richtext)
+- date (date)
++ * (jnt:file)
+
+[jnt:currentUserNotes] > jnt:content, mix:title, jmix:userProfileComponents, jmix:bindedComponent, jmix:list, jmix:studioOnly

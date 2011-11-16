@@ -32,6 +32,7 @@
                 <entry key="mailtojson">
                     <bean class="org.jahia.modules.gateway.mail.MailToJSON">
                         <property name="jcrTemplate" ref="jcrTemplate"/>
+                        <property name="userManagerService" ref="JahiaUserManagerService"/>
                         <property name="regexps">
                             <list value-type="java.lang.String">
                                 <value>create ([a-z]+):([a-zA-Z ]+) located in ([a-zA-Z/]*)</value>

@@ -39,21 +39,24 @@ import org.apache.camel.impl.DefaultMessage;
 import org.apache.camel.model.ProcessorDefinition;
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.lang.StringUtils;
+import org.apache.commons.lang.time.DateFormatUtils;
 import org.apache.log4j.Logger;
+import org.jahia.api.Constants;
 import org.jahia.modules.gateway.ConfigurableCamelHandler;
 import org.jahia.modules.gateway.GatewayTransformerConfigurationException;
 import org.jahia.services.content.*;
+import org.jahia.services.usermanager.JahiaUserManagerService;
+import org.json.JSONArray;
+import org.json.JSONException;
+import org.json.JSONObject;
 import org.springframework.beans.factory.BeanCreationException;
 import org.springframework.beans.factory.InitializingBean;
-import org.springframework.mail.MailParseException;
 
 import javax.jcr.NodeIterator;
 import javax.jcr.PathNotFoundException;
 import javax.jcr.RepositoryException;
-import javax.mail.BodyPart;
-import javax.mail.Message;
-import javax.mail.MessagingException;
-import javax.mail.Part;
+import javax.mail.*;
+import javax.mail.internet.InternetAddress;
 import javax.mail.internet.MimeMultipart;
 import javax.servlet.http.HttpServletRequest;
 import java.io.File;
@@ -61,11 +64,12 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.UnsupportedEncodingException;
 import java.net.URLDecoder;
-import java.util.LinkedList;
-import java.util.List;
-import java.util.Map;
+import java.security.Principal;
+import java.util.*;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+
+import static java.util.Calendar.getInstance;
 
 /**
  * Created by IntelliJ IDEA.
@@ -79,6 +83,7 @@ public class MailToJSON implements ConfigurableCamelHandler, InitializingBean {
     private List<Pattern> regexps;
     private Map<String, MailDecoder> decoders;
     private JCRTemplate jcrTemplate;
+    private JahiaUserManagerService userManagerService;
 
     @Handler
     public void handleExchange(Exchange exchange) {
@@ -87,6 +92,7 @@ public class MailToJSON implements ConfigurableCamelHandler, InitializingBean {
         try {
             String subject = mailMessage.getSubject();
             boolean matches = false;
+            Address[] from = mailMessage.getFrom();
             for (Pattern regexp : regexps) {
                 Matcher matcher = regexp.matcher(subject);
                 if (matcher.matches()) {
@@ -97,7 +103,7 @@ public class MailToJSON implements ConfigurableCamelHandler, InitializingBean {
                     if (decoders.containsKey(matcher.group(1))) {
                         DefaultMessage in = new DefaultMessage();
                         String decode = decoders.get(matcher.group(1)).decode(matcher.group(2), matcher.group(3),
-                                mailContent, mailMessage.getFrom());
+                                mailContent, from);
                         in.setBody(decode);
                         exchange.setOut(in);
                         matches = true;
@@ -105,8 +111,51 @@ public class MailToJSON implements ConfigurableCamelHandler, InitializingBean {
                 }
             }
             if (!matches) {
-                exchange.setException(new MailParseException(
-                        "This mail does not match any predefined regexp " + subject));
+                //Todo create personal note in the user folder
+                MailContent mailContent = new MailContent();
+                handleMailMessage(mailMessage, mailContent);
+                try {
+                    JSONObject jsonObject = new JSONObject();
+                    jsonObject.put("nodetype", "jnt:privateNote");
+                    jsonObject.put("name", subject);
+                    jsonObject.put("locale", "en");
+                    jsonObject.put("workspace", Constants.EDIT_WORKSPACE);
+                    jsonObject.put("saveFileUnderNewlyCreatedNode",Boolean.TRUE);
+                    Map<String, String> properties = new LinkedHashMap<String, String>();
+                    properties.put("note", mailContent.getBody());
+                    properties.put("jcr:title", subject);
+                    properties.put("date", DateFormatUtils.ISO_DATETIME_TIME_ZONE_FORMAT.format(getInstance()));
+                    jsonObject.put("properties", properties);
+                    //Add a file if needed
+                    if (from != null && from.length > 0) {
+                        Properties userProperties = new Properties();
+                        userProperties.setProperty("j:email", ((InternetAddress) from[0]).getAddress());
+                        try {
+                            Set<Principal> principals = userManagerService.searchUsers(userProperties);
+                            if (!principals.isEmpty()) {
+                                Principal principal = principals.iterator().next();
+                                jsonObject.put("path", userManagerService.getUserSplittingRule().getPathForUsername(
+                                                principal.getName()) + "/contents");
+                                List<File> files = mailContent.getFiles();
+                                List<String> filesPath = new LinkedList<String>();
+                                if(!files.isEmpty()) {
+                                    for (File file : files) {
+                                        filesPath.add(file.getAbsolutePath());
+                                    }
+                                    jsonObject.put("files",filesPath);
+                                }
+                                DefaultMessage in = new DefaultMessage();
+                                in.setBody(jsonObject.toString());
+                                exchange.setOut(in);
+                            }
+                        } catch (Exception e) {
+                            logger.error(e.getMessage(), e);
+                        }
+                    }
+                } catch (JSONException e) {
+                    logger.error(e.getMessage(), e);
+                    throw e;
+                }
             }
         } catch (Exception e) {
             logger.error(e.getMessage(), e);
@@ -123,7 +172,7 @@ public class MailToJSON implements ConfigurableCamelHandler, InitializingBean {
                 handleMailMessage(bodyPart, content);
             }
         } else if (mailContent instanceof String) {
-            if(content.getBody()==null || part.isMimeType("text/html")) {
+            if (content.getBody() == null || part.isMimeType("text/html")) {
                 content.setBody((String) mailContent);
             }
         } else if (mailContent instanceof InputStream) {
@@ -270,5 +319,9 @@ public class MailToJSON implements ConfigurableCamelHandler, InitializingBean {
                 return null;
             }
         });
+    }
+
+    public void setUserManagerService(JahiaUserManagerService userManagerService) {
+        this.userManagerService = userManagerService;
     }
 }
