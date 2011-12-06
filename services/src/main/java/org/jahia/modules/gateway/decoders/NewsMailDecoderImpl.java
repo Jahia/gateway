@@ -42,6 +42,7 @@ import org.json.JSONException;
 import org.json.JSONObject;
 
 import javax.mail.Address;
+import javax.mail.internet.InternetAddress;
 import java.security.Principal;
 import java.util.LinkedHashMap;
 import java.util.Map;
@@ -82,7 +83,7 @@ public class NewsMailDecoderImpl implements MailDecoder {
 
             if (from != null && from.length > 0) {
                 Properties userProperties = new Properties();
-                userProperties.setProperty("j:email", from[0].toString());
+                userProperties.setProperty("j:email", ((InternetAddress)from[0]).getAddress());
                 try {
                     Set<Principal> principals = userManagerService.searchUsers(userProperties);
                     if (!principals.isEmpty()) {

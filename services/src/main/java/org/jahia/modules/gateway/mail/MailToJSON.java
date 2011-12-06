@@ -38,15 +38,15 @@ import org.apache.camel.component.mail.MailMessage;
 import org.apache.camel.impl.DefaultMessage;
 import org.apache.camel.model.ProcessorDefinition;
 import org.apache.commons.io.FileUtils;
-import org.apache.commons.lang.StringUtils;
 import org.apache.commons.lang.time.DateFormatUtils;
 import org.apache.log4j.Logger;
 import org.jahia.api.Constants;
+import org.jahia.exceptions.JahiaInitializationException;
 import org.jahia.modules.gateway.ConfigurableCamelHandler;
 import org.jahia.modules.gateway.GatewayTransformerConfigurationException;
+import org.jahia.services.JahiaAfterInitializationService;
 import org.jahia.services.content.*;
 import org.jahia.services.usermanager.JahiaUserManagerService;
-import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
 import org.springframework.beans.factory.BeanCreationException;
@@ -78,7 +78,7 @@ import static java.util.Calendar.getInstance;
  * @since : JAHIA 6.1
  *        Created : 11/7/11
  */
-public class MailToJSON implements ConfigurableCamelHandler, InitializingBean {
+public class MailToJSON implements ConfigurableCamelHandler, JahiaAfterInitializationService {
     private transient static Logger logger = Logger.getLogger(MailToJSON.class);
     private List<Pattern> regexps;
     private Map<String, MailDecoder> decoders;
@@ -120,7 +120,7 @@ public class MailToJSON implements ConfigurableCamelHandler, InitializingBean {
                     jsonObject.put("name", subject);
                     jsonObject.put("locale", "en");
                     jsonObject.put("workspace", Constants.EDIT_WORKSPACE);
-                    jsonObject.put("saveFileUnderNewlyCreatedNode",Boolean.TRUE);
+                    jsonObject.put("saveFileUnderNewlyCreatedNode", Boolean.TRUE);
                     Map<String, String> properties = new LinkedHashMap<String, String>();
                     properties.put("note", mailContent.getBody());
                     properties.put("jcr:title", subject);
@@ -135,14 +135,14 @@ public class MailToJSON implements ConfigurableCamelHandler, InitializingBean {
                             if (!principals.isEmpty()) {
                                 Principal principal = principals.iterator().next();
                                 jsonObject.put("path", userManagerService.getUserSplittingRule().getPathForUsername(
-                                                principal.getName()) + "/contents");
+                                        principal.getName()) + "/contents");
                                 List<File> files = mailContent.getFiles();
                                 List<String> filesPath = new LinkedList<String>();
-                                if(!files.isEmpty()) {
+                                if (!files.isEmpty()) {
                                     for (File file : files) {
                                         filesPath.add(file.getAbsolutePath());
                                     }
-                                    jsonObject.put("files",filesPath);
+                                    jsonObject.put("files", filesPath);
                                 }
                                 DefaultMessage in = new DefaultMessage();
                                 in.setBody(jsonObject.toString());
@@ -177,8 +177,7 @@ public class MailToJSON implements ConfigurableCamelHandler, InitializingBean {
             }
         } else if (mailContent instanceof InputStream) {
             String filename = part.getFileName();
-            File tempFile = File.createTempFile(StringUtils.substringBeforeLast(filename, "."),
-                    "." + StringUtils.substringAfterLast(filename, "."));
+            File tempFile = new File(FileUtils.getTempDirectory(), filename);
             FileUtils.copyInputStreamToFile((InputStream) mailContent, tempFile);
             content.getFiles().add(tempFile);
         }
@@ -196,34 +195,78 @@ public class MailToJSON implements ConfigurableCamelHandler, InitializingBean {
             final String pathName = request.getParameter("pathName");
             final String path = request.getParameter("path");
             if (decoders.containsKey(decoderName)) {
-                decoders.get(decoderName).addPath(pathName, path);
-                try {
-                    jcrTemplate.doExecuteWithSystemSession(new JCRCallback<Object>() {
-                        public Object doInJCR(JCRSessionWrapper session) throws RepositoryException {
-                            JCRNodeWrapper nodeWrapper = session.getNode("/gateway/transformersData");
-                            JCRNodeWrapper node;
-                            if (!nodeWrapper.hasNode("mailtojson")) {
-                                node = nodeWrapper.addNode("mailtojson", "jnt:gtwMailtoJson");
-                            } else {
-                                node = nodeWrapper.getNode("mailtojson");
-                            }
-                            JCRNodeWrapper jcrNodeWrapper = node.addNode(JCRContentUtils.findAvailableNodeName(node,
-                                    decoderName), "jnt:gtwDecoderPath");
-                            jcrNodeWrapper.setProperty("decoderName", decoderName);
-                            jcrNodeWrapper.setProperty("pathName", pathName);
-                            jcrNodeWrapper.setProperty("pathReference", path);
-                            session.save();
-                            return null;
-                        }
-                    });
-                } catch (RepositoryException e) {
-                    throw new GatewayTransformerConfigurationException(e);
-                }
+                registerNewPathForDecoder(decoderName, pathName, path);
             }
         } else if ("addRegexp".equals(operation)) {
             try {
                 final String regexp = URLDecoder.decode(request.getParameter("regexp"), "UTF-8");
-                regexps.add(Pattern.compile(regexp));
+                registerRegexp(regexp);
+            } catch (UnsupportedEncodingException e) {
+                throw new GatewayTransformerConfigurationException(e);
+            } catch (RepositoryException e) {
+                throw new GatewayTransformerConfigurationException(e);
+            }
+        }
+    }
+
+    public void registerRegexp(final String regexp) throws RepositoryException {
+        if (addRegexp(regexp)) {
+            jcrTemplate.doExecuteWithSystemSession(new JCRCallback<Object>() {
+                public Object doInJCR(JCRSessionWrapper session) throws RepositoryException {
+                    JCRNodeWrapper nodeWrapper = session.getNode("/gateway/transformersData");
+                    JCRNodeWrapper node;
+                    if (!nodeWrapper.hasNode("mailtojson")) {
+                        node = nodeWrapper.addNode("mailtojson", "jnt:gtwMailtoJson");
+                    } else {
+                        node = nodeWrapper.getNode("mailtojson");
+                    }
+                    JCRNodeWrapper regexpsNode;
+                    if (node.hasNode("regexps")) {
+                        regexpsNode = node.getNode("regexps");
+                    } else {
+                        regexpsNode = node.addNode("regexps", "jnt:gtwRegexps");
+                    }
+                    JCRNodeWrapper jcrNodeWrapper = regexpsNode.addNode(JCRContentUtils.findAvailableNodeName(
+                            regexpsNode, "regexp"), "jnt:gtwRegexp");
+                    jcrNodeWrapper.setProperty("regexp", regexp);
+                    session.save();
+                    return null;
+                }
+            });
+        }
+    }
+
+    public void registerNewPathForDecoder(final String decoderName, final String pathName, final String path)
+            throws GatewayTransformerConfigurationException {
+        decoders.get(decoderName).addPath(pathName, path);
+        try {
+            jcrTemplate.doExecuteWithSystemSession(new JCRCallback<Object>() {
+                public Object doInJCR(JCRSessionWrapper session) throws RepositoryException {
+                    JCRNodeWrapper nodeWrapper = session.getNode("/gateway/transformersData");
+                    JCRNodeWrapper node;
+                    if (!nodeWrapper.hasNode("mailtojson")) {
+                        node = nodeWrapper.addNode("mailtojson", "jnt:gtwMailtoJson");
+                    } else {
+                        node = nodeWrapper.getNode("mailtojson");
+                    }
+                    JCRNodeWrapper jcrNodeWrapper = node.addNode(JCRContentUtils.findAvailableNodeName(node,
+                            decoderName), "jnt:gtwDecoderPath");
+                    jcrNodeWrapper.setProperty("decoderName", decoderName);
+                    jcrNodeWrapper.setProperty("pathName", pathName);
+                    jcrNodeWrapper.setProperty("pathReference", path);
+                    session.save();
+                    return null;
+                }
+            });
+        } catch (RepositoryException e) {
+            throw new GatewayTransformerConfigurationException(e);
+        }
+    }
+
+    public void unregisterPathForDecoder(final String decoderName, final String pathName)
+                throws GatewayTransformerConfigurationException {
+            decoders.get(decoderName).getPaths().remove(pathName);
+            try {
                 jcrTemplate.doExecuteWithSystemSession(new JCRCallback<Object>() {
                     public Object doInJCR(JCRSessionWrapper session) throws RepositoryException {
                         JCRNodeWrapper nodeWrapper = session.getNode("/gateway/transformersData");
@@ -233,26 +276,23 @@ public class MailToJSON implements ConfigurableCamelHandler, InitializingBean {
                         } else {
                             node = nodeWrapper.getNode("mailtojson");
                         }
-                        JCRNodeWrapper regexpsNode;
-                        if (node.hasNode("regexps")) {
-                            regexpsNode = node.getNode("regexps");
-                        } else {
-                            regexpsNode = node.addNode("regexps", "jnt:gtwRegexps");
+                        NodeIterator nodes = node.getNodes();
+                        while (nodes.hasNext()) {
+                            JCRNodeWrapper next = (JCRNodeWrapper) nodes.next();
+                            if(next.isNodeType("jnt:gtwDecoderPath") && next.getProperty("pathName").getString().equals(pathName)) {
+                                next.remove();
+                            }
                         }
-                        JCRNodeWrapper jcrNodeWrapper = regexpsNode.addNode(JCRContentUtils.findAvailableNodeName(
-                                regexpsNode, "regexp"), "jnt:gtwRegexp");
-                        jcrNodeWrapper.setProperty("regexp", regexp);
                         session.save();
                         return null;
                     }
                 });
-            } catch (UnsupportedEncodingException e) {
-                throw new GatewayTransformerConfigurationException(e);
             } catch (RepositoryException e) {
                 throw new GatewayTransformerConfigurationException(e);
             }
         }
-    }
+
+
 
     public void setRegexps(List<String> regexps) {
         this.regexps = new LinkedList<Pattern>();
@@ -277,48 +317,66 @@ public class MailToJSON implements ConfigurableCamelHandler, InitializingBean {
         this.jcrTemplate = jcrTemplate;
     }
 
-    public void afterPropertiesSet() throws Exception {
+    public void initAfterAllServicesAreStarted() throws JahiaInitializationException {
         if (regexps == null) {
             regexps = new LinkedList<Pattern>();
         }
         if (decoders == null) {
             throw new BeanCreationException("Decoders should not be empty for this bean to work");
         }
-        jcrTemplate.doExecuteWithSystemSession(new JCRCallback<Object>() {
-            public Object doInJCR(JCRSessionWrapper session) throws RepositoryException {
-                try {
-                    session.getNode("/gateway");
-                    JCRNodeWrapper nodeWrapper = session.getNode("/gateway/transformersData");
-                    if (!nodeWrapper.hasNode("mailtojson")) {
-                        nodeWrapper.addNode("mailtojson", "jnt:gtwMailtoJson");
-                    } else {
-                        JCRNodeWrapper mailtojsonNode = nodeWrapper.getNode("mailtojson");
-                        // init regexps from jcr
-                        if (mailtojsonNode.hasNode("regexps")) {
-                            JCRNodeWrapper regexpsNode = mailtojsonNode.getNode("regexps");
-                            NodeIterator nodes = regexpsNode.getNodes();
-                            while (nodes.hasNext()) {
-                                JCRNodeWrapper next = (JCRNodeWrapper) nodes.next();
-                                regexps.add(Pattern.compile(next.getProperty("regexp").getString()));
+        try {
+            jcrTemplate.doExecuteWithSystemSession(new JCRCallback<Object>() {
+                public Object doInJCR(JCRSessionWrapper session) throws RepositoryException {
+                    try {
+                        session.getNode("/gateway");
+                        JCRNodeWrapper nodeWrapper = session.getNode("/gateway/transformersData");
+                        if (!nodeWrapper.hasNode("mailtojson")) {
+                            nodeWrapper.addNode("mailtojson", "jnt:gtwMailtoJson");
+                        } else {
+                            JCRNodeWrapper mailtojsonNode = nodeWrapper.getNode("mailtojson");
+                            // init regexps from jcr
+                            if (mailtojsonNode.hasNode("regexps")) {
+                                JCRNodeWrapper regexpsNode = mailtojsonNode.getNode("regexps");
+                                NodeIterator nodes = regexpsNode.getNodes();
+                                while (nodes.hasNext()) {
+                                    JCRNodeWrapper next = (JCRNodeWrapper) nodes.next();
+                                    String regexp = next.getProperty("regexp").getString();
+                                    addRegexp(regexp);
+                                }
+                            }
+                            // init decoders path
+                            List<JCRNodeWrapper> decoderPaths = JCRContentUtils.getChildrenOfType(mailtojsonNode,
+                                    "jnt:gtwDecoderPath");
+                            for (JCRNodeWrapper decoderPath : decoderPaths) {
+                                if (decoders.containsKey(decoderPath.getProperty("decoderName").getString())) {
+                                    decoders.get(decoderPath.getProperty("decoderName").getString()).addPath(
+                                            decoderPath.getProperty("pathName").getString(), decoderPath.getProperty(
+                                            "pathReference").getString());
+                                }
                             }
                         }
-                        // init decoders path
-                        List<JCRNodeWrapper> decoderPaths = JCRContentUtils.getChildrenOfType(mailtojsonNode,
-                                "jnt:gtwDecoderPath");
-                        for (JCRNodeWrapper decoderPath : decoderPaths) {
-                            if (decoders.containsKey(decoderPath.getProperty("decoderName").getString())) {
-                                decoders.get(decoderPath.getProperty("decoderName").getString()).addPath(
-                                        decoderPath.getProperty("pathName").getString(), decoderPath.getProperty(
-                                        "pathReference").getString());
-                            }
-                        }
+                    } catch (PathNotFoundException e) {
+                        logger.debug("Gateway not imported yet");
                     }
-                } catch (PathNotFoundException e) {
-                    logger.debug("Gateway not imported yet");
+                    return null;
                 }
-                return null;
+            });
+        } catch (RepositoryException e) {
+            throw new JahiaInitializationException(e.getMessage(),e);
+        }
+    }
+
+    private boolean addRegexp(String regexp) {
+        boolean notFound = true;
+        for (Pattern pattern : regexps) {
+            if (pattern.pattern().equals(regexp)) {
+                notFound = false;
             }
-        });
+        }
+        if (notFound) {
+            regexps.add(Pattern.compile(regexp));
+        }
+        return notFound;
     }
 
     public void setUserManagerService(JahiaUserManagerService userManagerService) {

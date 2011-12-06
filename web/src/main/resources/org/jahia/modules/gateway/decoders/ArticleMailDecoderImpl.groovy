@@ -8,6 +8,7 @@ import org.jahia.modules.gateway.mail.MailDecoder
 import org.jahia.services.usermanager.JahiaUserManagerService
 import org.json.JSONException
 import org.json.JSONObject
+import javax.mail.internet.InternetAddress
 
 /**
  * Created by IntelliJ IDEA.
@@ -32,7 +33,7 @@ class ArticleMailDecoderImpl implements MailDecoder {
             properties.put("jcr:title", title);
             if (from != null && from.length > 0) {
                 Properties userProperties = new Properties();
-                userProperties.setProperty("j:email", from[0].toString());
+                userProperties.setProperty("j:email", ((InternetAddress)from[0]).getAddress());
                 try {
                     Set<Principal> principals = userManagerService.searchUsers(userProperties);
                     if (!principals.isEmpty()) {

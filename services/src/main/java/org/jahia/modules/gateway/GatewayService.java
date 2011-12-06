@@ -37,6 +37,8 @@ import org.apache.camel.CamelContextAware;
 import org.apache.camel.builder.RouteBuilder;
 import org.apache.camel.model.ProcessorDefinition;
 import org.apache.log4j.Logger;
+import org.jahia.exceptions.JahiaInitializationException;
+import org.jahia.services.JahiaAfterInitializationService;
 import org.jahia.services.content.JCRCallback;
 import org.jahia.services.content.JCRNodeWrapper;
 import org.jahia.services.content.JCRSessionWrapper;
@@ -55,7 +57,7 @@ import java.util.*;
  * @since : JAHIA 6.6
  *        Created : 11/7/11
  */
-public class GatewayService implements CamelContextAware, InitializingBean {
+public class GatewayService implements CamelContextAware, JahiaAfterInitializationService {
     private transient static Logger logger = Logger.getLogger(GatewayService.class);
     private CamelContext camelContext;
     private Map<String, CamelHandler> deserializers;
@@ -99,17 +101,7 @@ public class GatewayService implements CamelContextAware, InitializingBean {
         this.routes = routes;
     }
 
-    /**
-     * Invoked by a BeanFactory after it has set all bean properties supplied
-     * (and satisfied BeanFactoryAware and ApplicationContextAware).
-     * <p>This method allows the bean instance to perform initialization only
-     * possible when all bean properties have been set and to throw an
-     * exception in the event of misconfiguration.
-     *
-     * @throws Exception in the event of misconfiguration (such
-     *                   as failure to set an essential property) or if initialization fails.
-     */
-    public void afterPropertiesSet() throws Exception {
+    public void initAfterAllServicesAreStarted() throws JahiaInitializationException {
         if (transformers == null) {
             transformers = new HashMap<String, CamelHandler>();
         }
@@ -124,36 +116,40 @@ public class GatewayService implements CamelContextAware, InitializingBean {
         }
         // load start points and routes from jcr
 
-        template.doExecuteWithSystemSession(new JCRCallback<Object>() {
-            public Object doInJCR(JCRSessionWrapper session) throws RepositoryException {
-                try {
-                    session.getNode("/gateway");
-                    JCRNodeWrapper node = session.getNode("/gateway/startPoints");
-                    NodeIterator nodes = node.getNodes();
-                    while (nodes.hasNext()) {
-                        JCRNodeWrapper next = (JCRNodeWrapper) nodes.nextNode();
-                        try {
-                            routeStartPoints.put(next.getName(), camelStartPointFactory.createCamelStartPoint(next));
-                        } catch (IllegalAccessException e) {
-                            logger.error(e.getMessage(), e);
-                        } catch (InstantiationException e) {
-                            logger.error(e.getMessage(), e);
-                        } catch (ClassNotFoundException e) {
-                            logger.error(e.getMessage(), e);
+        try {
+            template.doExecuteWithSystemSession(new JCRCallback<Object>() {
+                public Object doInJCR(JCRSessionWrapper session) throws RepositoryException {
+                    try {
+                        session.getNode("/gateway");
+                        JCRNodeWrapper node = session.getNode("/gateway/startPoints");
+                        NodeIterator nodes = node.getNodes();
+                        while (nodes.hasNext()) {
+                            JCRNodeWrapper next = (JCRNodeWrapper) nodes.nextNode();
+                            try {
+                                routeStartPoints.put(next.getName(), camelStartPointFactory.createCamelStartPoint(next));
+                            } catch (IllegalAccessException e) {
+                                logger.error(e.getMessage(), e);
+                            } catch (InstantiationException e) {
+                                logger.error(e.getMessage(), e);
+                            } catch (ClassNotFoundException e) {
+                                logger.error(e.getMessage(), e);
+                            }
                         }
+                        node = session.getNode("/gateway/routes");
+                        nodes = node.getNodes();
+                        while (nodes.hasNext()) {
+                            JCRNodeWrapper next = (JCRNodeWrapper) nodes.nextNode();
+                            routes.put(next.getName(), next.getProperty("route").getString());
+                        }
+                    } catch (PathNotFoundException e) {
+                        logger.debug("Gateway not imported yet");
                     }
-                    node = session.getNode("/gateway/routes");
-                    nodes = node.getNodes();
-                    while (nodes.hasNext()) {
-                        JCRNodeWrapper next = (JCRNodeWrapper) nodes.nextNode();
-                        routes.put(next.getName(), next.getProperty("route").getString());
-                    }
-                } catch (PathNotFoundException e) {
-                    logger.debug("Gateway not imported yet");
+                    return null;
                 }
-                return null;
-            }
-        });
+            });
+        } catch (RepositoryException e) {
+            throw new JahiaInitializationException(e.getMessage(),e);
+        }
         for (Map.Entry<String, String> entry : routes.entrySet()) {
             String[] strings = entry.getValue().split("->");
             if (strings.length > 1) {

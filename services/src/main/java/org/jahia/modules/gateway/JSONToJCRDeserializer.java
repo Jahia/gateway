@@ -116,32 +116,64 @@ public class JSONToJCRDeserializer implements CamelHandler {
                 assert workspace != null;
                 final String path = jsonObject.getString("path");
                 assert path != null;
-                final JSONObject properties = jsonObject.getJSONObject("properties");
-                assert properties != null;
-                jcrTemplate.doExecuteWithSystemSession(username, workspace,
-                        org.jahia.utils.LanguageCodeConverters.languageCodeToLocale(locale), new JCRCallback<Object>() {
-                    public Object doInJCR(JCRSessionWrapper session) throws RepositoryException {
-                        logger.debug("Getting parent node with path : " + path);
-                        boolean saveFileUnderNode = false;
-                        try {
-                            if (jsonObject.has("saveFileUnderNewlyCreatedNode")) {
-                                saveFileUnderNode = jsonObject.getBoolean("saveFileUnderNewlyCreatedNode");
-                            }
-                        } catch (JSONException e) {
-                            logger.error(e.getMessage(), e);
-                        }
-                        Object header = exchange.getIn().getHeader(Constants.UPDATE_ONLY);
-                        if (header == null || !(Boolean) header) {
-                            createNewNode(session, path, name, nodetype, properties, extendedNodeType, jsonObject,
-                                    saveFileUnderNode);
-                        } else {
-                            updateExistingNode(session, path, name, properties, extendedNodeType, jsonObject, nodetype,
-                                    saveFileUnderNode);
-                        }
-                        session.save();
-                        return null;
-                    }
-                });
+                if (!extendedNodeType.isNodeType("nt:file")) {
+                    final JSONObject properties = jsonObject.getJSONObject("properties");
+                    assert properties != null;
+                    jcrTemplate.doExecuteWithSystemSession(username, workspace,
+                            org.jahia.utils.LanguageCodeConverters.languageCodeToLocale(locale),
+                            new JCRCallback<Object>() {
+                                public Object doInJCR(JCRSessionWrapper session) throws RepositoryException {
+                                    logger.debug("Getting parent node with path : " + path);
+                                    boolean saveFileUnderNode = false;
+                                    try {
+                                        if (jsonObject.has("saveFileUnderNewlyCreatedNode")) {
+                                            saveFileUnderNode = jsonObject.getBoolean("saveFileUnderNewlyCreatedNode");
+                                        }
+                                    } catch (JSONException e) {
+                                        logger.error(e.getMessage(), e);
+                                    }
+                                    Object header = exchange.getIn().getHeader(Constants.UPDATE_ONLY);
+                                    if (header == null || !(Boolean) header) {
+                                        createNewNode(session, path, name, nodetype, properties, extendedNodeType,
+                                                jsonObject, saveFileUnderNode);
+                                    } else {
+                                        updateExistingNode(session, path, name, properties, extendedNodeType,
+                                                jsonObject, nodetype, saveFileUnderNode);
+                                    }
+                                    session.save();
+                                    return null;
+                                }
+                            });
+                } else {
+                    jcrTemplate.doExecuteWithSystemSession(username, workspace,
+                            org.jahia.utils.LanguageCodeConverters.languageCodeToLocale(locale),
+                            new JCRCallback<Object>() {
+                                public Object doInJCR(JCRSessionWrapper session) throws RepositoryException {
+                                    logger.debug("Getting parent node with path : " + path);
+                                    try {
+                                        JCRNodeWrapper node = session.getNode(path);
+                                        if (jsonObject.has("files")) {
+                                            MimetypesFileTypeMap mimetypesFileTypeMap = new MimetypesFileTypeMap();
+                                            JSONArray files = jsonObject.getJSONArray("files");
+                                            for (int i = 0; i < files.length(); i++) {
+                                                try {
+                                                    File file = new File(files.getString(i));
+                                                    node.uploadFile(file.getName(), FileUtils.openInputStream(file),
+                                                            mimetypesFileTypeMap.getContentType(file));
+                                                    FileUtils.deleteQuietly(file);
+                                                } catch (IOException e) {
+                                                    logger.error(e.getMessage(), e);
+                                                }
+                                            }
+                                        }
+                                        session.save();
+                                    } catch (JSONException e) {
+                                        logger.error(e.getMessage(), e);
+                                    }
+                                    return null;
+                                }
+                            });
+                }
             } catch (JSONException e) {
                 logger.error(e.getMessage(), e);
             } catch (NoSuchNodeTypeException e) {
@@ -203,11 +235,12 @@ public class JSONToJCRDeserializer implements CamelHandler {
             if (saveFileUnderNode && jsonObject.has("files")) {
                 MimetypesFileTypeMap mimetypesFileTypeMap = new MimetypesFileTypeMap();
                 JSONArray files = jsonObject.getJSONArray("files");
-                for(int i=0;i<files.length();i++) {
+                for (int i = 0; i < files.length(); i++) {
                     try {
                         File file = new File(files.getString(i));
                         newNode.uploadFile(file.getName(), FileUtils.openInputStream(file),
                                 mimetypesFileTypeMap.getContentType(file));
+                        FileUtils.deleteQuietly(file);
                     } catch (IOException e) {
                         logger.error(e.getMessage(), e);
                     }
@@ -222,7 +255,8 @@ public class JSONToJCRDeserializer implements CamelHandler {
         return processorDefinition.bean(this);
     }
 
-    private void setPropertiesOnNode(JCRNodeWrapper newNode, JSONObject properties, ExtendedNodeType nodeType) throws RepositoryException {
+    private void setPropertiesOnNode(JCRNodeWrapper newNode, JSONObject properties, ExtendedNodeType nodeType)
+            throws RepositoryException {
         Iterator keys = properties.keys();
         while (keys.hasNext()) {
             String property = (String) keys.next();
@@ -264,6 +298,7 @@ public class JSONToJCRDeserializer implements CamelHandler {
                             JCRNodeWrapper reference = files.uploadFile(file.getName(), FileUtils.openInputStream(file),
                                     new MimetypesFileTypeMap().getContentType(file));
                             newNode.setProperty(name, reference);
+                            FileUtils.deleteQuietly(file);
                             break;
                         default:
                             newNode.setProperty(name, value);
