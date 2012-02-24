@@ -7,7 +7,7 @@
  
     For more information, please visit http://www.jahia.com.
  
-    Copyright (C) 2002-2011 Jahia Solutions Group SA. All rights reserved.
+    Copyright (C) 2002-2012 Jahia Solutions Group SA. All rights reserved.
  
     This program is free software; you can redistribute it and/or
     modify it under the terms of the GNU General Public License
@@ -43,15 +43,36 @@
          xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
     <modelVersion>4.0.0</modelVersion>
     <parent>
-        <artifactId>jahia-default-modules</artifactId>
+        <artifactId>jahia-modules</artifactId>
         <groupId>org.jahia.modules</groupId>
-        <version>1.2-SNAPSHOT</version>
+        <version>6.6.1.0-SNAPSHOT</version>
     </parent>
-    <groupId>org.jahia.modules</groupId>
     <artifactId>gateway-project</artifactId>
     <name>Jahia Gateway Project</name>
+	<version>1.0-SNAPSHOT</version>
     <packaging>pom</packaging>
     <description>This is a custom module for running on a Jahia server.</description>
+    <scm>
+        <connection>scm:git:git@github.com:Jahia/gateway.git</connection>
+        <url>scm:git:git@github.com:Jahia/gateway.git</url>
+        <developerConnection>scm:git:git@github.com:Jahia/gateway.git</developerConnection>
+    </scm>
+    
+    <repositories>
+        <repository>
+            <id>jahiaRepository</id>
+            <name>Jahia's Maven Repository</name>
+            <url>http://maven.jahia.org/maven2</url>
+        </repository>
+    </repositories>
+    <pluginRepositories>
+        <pluginRepository>
+            <id>jahiaRepository</id>
+            <name>Jahia's Maven Repository</name>
+            <url>http://maven.jahia.org/maven2</url>
+        </pluginRepository>
+    </pluginRepositories>
+	
     <modules>
 		<module>services</module>
 		<module>web</module>

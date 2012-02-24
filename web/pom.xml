@@ -7,7 +7,7 @@
  
     For more information, please visit http://www.jahia.com.
  
-    Copyright (C) 2002-2011 Jahia Solutions Group SA. All rights reserved.
+    Copyright (C) 2002-2012 Jahia Solutions Group SA. All rights reserved.
  
     This program is free software; you can redistribute it and/or
     modify it under the terms of the GNU General Public License
@@ -43,11 +43,10 @@
          xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
     <modelVersion>4.0.0</modelVersion>
     <parent>
-        <artifactId>jahia-default-modules</artifactId>
+        <artifactId>gateway-project</artifactId>
         <groupId>org.jahia.modules</groupId>
-        <version>1.2-SNAPSHOT</version>
+        <version>1.0-SNAPSHOT</version>
     </parent>
-    <groupId>org.jahia.modules</groupId>
     <artifactId>gateway</artifactId>
     <name>Jahia Gateway</name>
     <packaging>war</packaging>
@@ -57,14 +56,10 @@
         <dependency>
             <groupId>org.jahia.modules</groupId>
             <artifactId>gateway-services</artifactId>
-            <version>1.2-SNAPSHOT</version>
+            <version>1.0-SNAPSHOT</version>
             <exclusions>
                 <exclusion>
                     <artifactId>camel-core</artifactId>
-                    <groupId>org.apache.camel</groupId>
-                </exclusion>
-                <exclusion>
-                    <artifactId>camel-sql</artifactId>
                     <groupId>org.apache.camel</groupId>
                 </exclusion>
                 <exclusion>
@@ -109,14 +104,8 @@
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-war-plugin</artifactId>
-                <version>${war.plugin.version}</version>
                 <configuration>
-                    <warSourceExcludes>resources/*.properties</warSourceExcludes>
                     <webResources>
-                        <resource>
-                            <directory>${project.build.directory}/native2ascii</directory>
-                            <targetPath>resources</targetPath>
-                        </resource>
                         <resource>
                             <directory>${project.build.directory}</directory>
                             <includes>

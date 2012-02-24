@@ -3,3 +3,5 @@
 /.settings
 /.idea
 /gateway.iml
+/services/target
+/web/target
