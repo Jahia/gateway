@@ -5,3 +5,15 @@
 /gateway.iml
 /services/target
 /web/target
+/sandbox/.settings
+/sandbox/target
+/sandbox/.classpath
+/sandbox/.project
+/services/.settings
+/services/target
+/services/.classpath
+/services/.project
+/web/.settings
+/web/target
+/web/.classpath
+/web/.project

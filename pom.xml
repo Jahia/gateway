@@ -76,6 +76,9 @@
     <modules>
 		<module>services</module>
 		<module>web</module>
+        <!--
+        <module>sandbox</module>
+        -->
     </modules>    
 </project>
 

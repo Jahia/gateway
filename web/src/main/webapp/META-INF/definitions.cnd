@@ -17,32 +17,34 @@
 - route (string) indexed=no
 
 [jnt:gtwStartPoints] > nt:base
-+ * (jnt:gtwStartPoint)
++ * (jmix:gtwStartPoint)
 
-[jnt:gtwStartPoint] mixin
+[jmix:gtwStartPoint] mixin
 
-[jnt:gmailstartpoint] > nt:base, jnt:gtwStartPoint
-- uri (string) indexed=no
+[jnt:imapStartPoint] > nt:base, jmix:gtwStartPoint
+ - uri (string) indexed=no
+ - password (string,text[password]) indexed=no
 
 [jnt:gtwTransformers] > nt:base
 + * (nt:base)
 
 [jnt:gtwMailtoJson] > nt:base
-+ regexps (jnt:gtwRegexps)
-+ * (jnt:gtwDecoderPath)
 
-[jnt:gtwRegexps] > nt:base
-+ * (jnt:gtwRegexp)
+//+ regexps (jnt:gtwRegexps)
+//+ * (jnt:gtwDecoderPath)
 
-[jnt:gtwRegexp] > nt:base
-- regexp (string)
+//[jnt:gtwRegexps] > nt:base
+//+ * (jnt:gtwRegexp)
 
-[jnt:gtwDecoderPath] > nt:base
-- decoderName (string) indexed=no
-- pathName (string) indexed=no
-- pathReference (string) indexed=no
+//[jnt:gtwRegexp] > nt:base
+//- regexp (string)
 
-[jnt:sqlstartpoint] > nt:base, jnt:gtwStartPoint
+//[jnt:gtwDecoderPath] > nt:base
+//- decoderName (string) indexed=no
+//- pathName (string) indexed=no
+//- pathReference (string) indexed=no
+
+[jnt:sqlStartPoint] > nt:base, jmix:gtwStartPoint
 - frequency (long)
 - sql (string)
 - datasource (string)
@@ -50,15 +52,3 @@
 
 [jnt:sqlunstructuredContent] > jnt:content, jmix:droppableContent, jmix:autoPublish
 - * (string)
-
-[jnt:sqlPricing] > jnt:content, jmix:siteComponent, mix:title
-- priceRef (weakreference) mandatory < jmix:droppableContent
-- description (string) mandatory
-- image (weakreference, picker[type='image']) mandatory
-
-[jnt:privateNote] > jnt:content, jmix:droppableContent, mix:title
-- note (string, richtext)
-- date (date)
-+ * (jnt:file)
-
-[jnt:currentUserNotes] > jnt:content, mix:title, jmix:userProfileComponents, jmix:bindedComponent, jmix:list, jmix:studioOnly

@@ -1,0 +1,62 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<beans xmlns="http://www.springframework.org/schema/beans"
+       xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+       xmlns:lang="http://www.springframework.org/schema/lang"
+       xsi:schemaLocation="http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans-3.0.xsd http://www.springframework.org/schema/lang http://www.springframework.org/schema/lang/spring-lang-3.0.xsd">
+
+    <!--
+    <bean class="org.jahia.modules.gateway.decoders.NewsMailDecoderImpl">
+        <property name="key" value="news"/>
+        <property name="paths">
+            <map key-type="java.lang.String" value-type="java.lang.String">
+                <entry key="shared" value="/sites/systemsite/contents/news"/>
+            </map>
+        </property>
+        <property name="userManagerService" ref="JahiaUserManagerService" />
+    </bean>
+
+    <lang:groovy id="articleDecoder"
+                 script-source="classpath:org/jahia/modules/gateway/decoders/ArticleMailDecoderImpl.groovy">
+        <lang:property name="key" value="news"/>
+        <lang:property name="paths">
+            <map key-type="java.lang.String" value-type="java.lang.String">
+                <entry key="shared" value="/sites/systemsite/contents/articles"/>
+            </map>
+        </lang:property>
+        <lang:property name="userManagerService" ref="JahiaUserManagerService"/>
+    </lang:groovy>
+    -->
+
+    <!--Jahia Administration Module-->
+    <bean id="gatewayAdministrationModule" class="org.jahia.modules.gateway.admin.GatewayAdministrationModule"
+          parent="abstractAdministrationModule">
+        <property name="serverModule" value="true"/>
+        <property name="urlKey" value="gateway"/>
+        <property name="permissionName" value="admin/gateway"/>
+        <property name="name" value="gateway"/>
+        <property name="icon" value="icons/gateway.png"/>
+        <property name="iconSmall" value="icons/gateway_small.png"/>
+        <property name="label" value="label.gateway"/>
+        <property name="tooltip" value=""/>
+        <property name="urlType" value="module"/>
+        <property name="urlAction" value="gateway"/>
+        <property name="urlParams" value=""/>
+        <property name="gatewayService" ref="gatewayService"/>
+        <property name="templateManagerService" ref="JahiaTemplateManagerService"/>
+        <property name="startPointFormHandlers">
+            <map key-type="java.lang.String" value-type="org.jahia.modules.gateway.admin.forms.StartPointFormHandler">
+                <entry key="mail">
+                    <!--key will be used to define the jsp file associated with this form here we will look for a form name mail.form.jsp-->
+                    <bean class="org.jahia.modules.gateway.admin.forms.ImapMailStartPointFormHandlerImpl">
+                        <property name="template" ref="jcrTemplate"/>
+                    </bean>
+                </entry>
+                <entry key="sql">
+                    <bean class="org.jahia.modules.gateway.jdbc.SQLStartpoint">
+                        <property name="template" ref="jcrTemplate"/>
+                    </bean>
+                </entry>
+            </map>
+        </property>
+    </bean>
+</beans>

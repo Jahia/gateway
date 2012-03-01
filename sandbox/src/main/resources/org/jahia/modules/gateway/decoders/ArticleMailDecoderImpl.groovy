@@ -11,9 +11,7 @@ import org.json.JSONObject
 import javax.mail.internet.InternetAddress
 
 /**
- * Created by IntelliJ IDEA.
- * @author : rincevent
- * @since : JAHIA 6.1
+ * @author rincevent
  * Created : 11/8/11
  */
 class ArticleMailDecoderImpl implements MailDecoder {
@@ -97,5 +95,9 @@ class ArticleMailDecoderImpl implements MailDecoder {
 
     void addPath(String name, String path) {
         paths.put(name, path)
+    }
+
+    public String getKey() {
+        return "article";
     }
 }

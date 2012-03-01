@@ -36,7 +36,10 @@ import org.apache.camel.Exchange;
 import org.apache.camel.Handler;
 import org.apache.camel.model.ProcessorDefinition;
 import org.apache.commons.io.FileUtils;
+import org.apache.commons.lang.StringUtils;
 import org.apache.log4j.Logger;
+import org.apache.tika.io.IOUtils;
+import org.jahia.bin.Jahia;
 import org.jahia.services.content.*;
 import org.jahia.services.content.nodetypes.ExtendedNodeType;
 import org.jahia.services.content.nodetypes.ExtendedPropertyDefinition;
@@ -55,6 +58,7 @@ import javax.jcr.RepositoryException;
 import javax.jcr.nodetype.NoSuchNodeTypeException;
 import java.io.File;
 import java.io.IOException;
+import java.io.InputStream;
 import java.util.Iterator;
 import java.util.Locale;
 
@@ -82,7 +86,8 @@ import java.util.Locale;
  *        Created : 11/7/11
  */
 public class JSONToJCRDeserializer implements CamelHandler {
-    private transient static Logger logger = Logger.getLogger(JSONToJCRDeserializer.class);
+    private static Logger logger = Logger.getLogger(JSONToJCRDeserializer.class);
+    private static final MimetypesFileTypeMap MIME_TYPE_MAP = new MimetypesFileTypeMap();
     private JCRTemplate jcrTemplate;
     private TaggingService taggingService;
 
@@ -144,26 +149,59 @@ public class JSONToJCRDeserializer implements CamelHandler {
                                     return null;
                                 }
                             });
-                } else {
+                } else if (jsonObject.has("files")) {
                     jcrTemplate.doExecuteWithSystemSession(username, workspace,
                             org.jahia.utils.LanguageCodeConverters.languageCodeToLocale(locale),
                             new JCRCallback<Object>() {
                                 public Object doInJCR(JCRSessionWrapper session) throws RepositoryException {
-                                    logger.debug("Getting parent node with path : " + path);
+                                    if (logger.isDebugEnabled()) {
+                                        logger.debug("Getting parent node with path : " + path);
+                                    }
                                     try {
                                         JCRNodeWrapper node = session.getNode(path);
-                                        if (jsonObject.has("files")) {
-                                            MimetypesFileTypeMap mimetypesFileTypeMap = new MimetypesFileTypeMap();
-                                            JSONArray files = jsonObject.getJSONArray("files");
-                                            for (int i = 0; i < files.length(); i++) {
-                                                try {
-                                                    File file = new File(files.getString(i));
-                                                    node.uploadFile(file.getName(), FileUtils.openInputStream(file),
-                                                            mimetypesFileTypeMap.getContentType(file));
-                                                    FileUtils.deleteQuietly(file);
-                                                } catch (IOException e) {
-                                                    logger.error(e.getMessage(), e);
-                                                }
+                                        boolean doUpdate = jsonObject.has("updateifexists") && Boolean.valueOf(jsonObject.getString("updateifexists"));
+                                        JSONArray files = jsonObject.getJSONArray("files");
+                                        for (int i = 0; i < files.length(); i++) {
+                                            File file = null;
+                                            String contentType = null;
+                                            String nodeName = null;
+                                            
+                                            Object fileItem = files.get(i);
+                                            if (fileItem instanceof JSONObject) {
+                                                JSONObject fileDescriptor = (JSONObject) fileItem;
+                                                file = new File(fileDescriptor.getString("file"));
+                                                nodeName = StringUtils.defaultIfEmpty(
+                                                        fileDescriptor.has("name") ? fileDescriptor
+                                                                .getString("name") : null, file
+                                                                .getName());
+                                                contentType = fileDescriptor.has("contentType") ? fileDescriptor
+                                                        .getString("contentType") : null;
+                                            } else {
+                                                file = new File(files.getString(i));
+                                                nodeName = file.getName();
+                                            }
+                                            if (contentType == null) {
+                                                contentType = StringUtils.defaultIfEmpty(Jahia
+                                                        .getStaticServletConfig()
+                                                        .getServletContext().getMimeType(nodeName.toLowerCase()),
+                                                        MIME_TYPE_MAP.getContentType(nodeName.toLowerCase()));
+                                            }
+                                            
+                                            if (file == null || nodeName == null || contentType == null) {
+                                                continue;
+                                            }
+                                            
+                                            InputStream is = null;
+                                            try {
+                                                is = FileUtils.openInputStream(file);
+                                                node.uploadFile(
+                                                        doUpdate ? nodeName : JCRContentUtils.findAvailableNodeName(node, nodeName),
+                                                        is, contentType);
+                                            } catch (IOException e) {
+                                                logger.error(e.getMessage(), e);
+                                            } finally {
+                                                IOUtils.closeQuietly(is);
+                                                FileUtils.deleteQuietly(file);
                                             }
                                         }
                                         session.save();
