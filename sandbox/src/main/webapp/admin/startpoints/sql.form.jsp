@@ -1,7 +1,7 @@
 <%@ taglib prefix="fmt" uri="http://java.sun.com/jsp/jstl/fmt" %>
 <%@ taglib prefix="utility" uri="http://www.jahia.org/tags/utilityLib" %>
 <%@ page import="org.jahia.bin.JahiaAdministration" %>
-<utility:setBundle basename="JahiaGateway" var="gatewayBundle" templateName="Jahia Gateway" useUILocale="true"/>
+<utility:setBundle basename="JahiaGatewaySandbox" var="gatewayBundle" templateName="Jahia Gateway Sandbox" useUILocale="true"/>
 <div class="head headtop">
     <div class="object-title">
         <fmt:message key="label.routes.startpoint.add.sql" bundle="${gatewayBundle}"/>

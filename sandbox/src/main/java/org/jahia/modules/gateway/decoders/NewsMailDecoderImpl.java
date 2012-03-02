@@ -32,54 +32,63 @@
  */
 package org.jahia.modules.gateway.decoders;
 
+import java.util.HashMap;
+import java.util.LinkedHashMap;
+import java.util.Map;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
+
+import javax.mail.Message;
+
+import org.apache.commons.lang.StringUtils;
 import org.apache.commons.lang.time.DateFormatUtils;
 import org.jahia.api.Constants;
 import org.jahia.modules.gateway.mail.MailContent;
-import org.jahia.modules.gateway.mail.MailDecoder;
 import org.jahia.services.usermanager.JahiaUser;
-import org.jahia.services.usermanager.JahiaUserManagerService;
-import org.json.JSONException;
 import org.json.JSONObject;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
-import javax.mail.Address;
-import javax.mail.Message;
-import javax.mail.internet.InternetAddress;
-import java.security.Principal;
-import java.util.LinkedHashMap;
-import java.util.Map;
-import java.util.Properties;
-import java.util.Set;
-
-import static java.util.Calendar.getInstance;
 
 /**
  * Mail decoder for news items.
- *
+ * 
  * @author rincevent
  */
 public class NewsMailDecoderImpl extends BaseMailDecoder {
-    private static Logger logger = LoggerFactory.getLogger(NewsMailDecoderImpl.class);
 
-    public String decode(MailContent parsedMailContent, Message originalMessage) throws Exception {
+    private Map<String, String> paths = new HashMap<String, String>();
+
+    public String decode(Pattern matchingPattern, MailContent parsedMailContent,
+            Message originalMessage) throws Exception {
         String subject = originalMessage.getSubject();
-        
+
+        String title = null;
+        String nodepath = null;
+
+        Matcher m = matchingPattern.matcher(subject);
+        if (m.matches() && m.groupCount() > 0) {
+            title = m.group(1);
+            if (m.groupCount() > 1) {
+                nodepath = m.group(2);
+            }
+        }
+        nodepath = StringUtils.isNotBlank(nodepath) && paths.containsKey(nodepath) ? paths
+                .get(nodepath) : "/sites/systemsite/contents/news";
+
         JSONObject jsonObject = new JSONObject();
         jsonObject.put("nodetype", "jnt:news");
-        jsonObject.put("name", title);
+        jsonObject.put("name", StringUtils.defaultIfBlank(title, "Unknown"));
         jsonObject.put("locale", "en");
         jsonObject.put("workspace", Constants.EDIT_WORKSPACE);
-        jsonObject.put("path", getPaths().get(nodepath));
+        jsonObject.put("path", nodepath);
         Map<String, String> properties = new LinkedHashMap<String, String>();
         properties.put("desc", parsedMailContent.getBody());
-        properties.put("jcr:title", title);
-        properties.put("date", DateFormatUtils.ISO_DATETIME_TIME_ZONE_FORMAT.format(getInstance()));
+        properties.put("jcr:title", StringUtils.defaultIfBlank(title, "Unknown"));
+        properties.put("date",
+                DateFormatUtils.ISO_DATETIME_TIME_ZONE_FORMAT.format(System.currentTimeMillis()));
         if (!parsedMailContent.getFiles().isEmpty()) {
-            properties.put("image", parsedMailContent.getFiles().get(0).getAbsolutePath());
+            properties
+                    .put("image", parsedMailContent.getFiles().get(0).getFile().getAbsolutePath());
         }
         jsonObject.put("properties", properties);
-
 
         JahiaUser sender = getSender(originalMessage);
         if (sender != null) {
@@ -87,5 +96,12 @@ public class NewsMailDecoderImpl extends BaseMailDecoder {
         }
 
         return jsonObject.toString();
+    }
+
+    public void setPaths(Map<String, String> paths) {
+        this.paths.clear();
+        if (paths != null) {
+            this.paths.putAll(paths);
+        }
     }
 }

@@ -2,7 +2,7 @@
 <%@ taglib prefix="c" uri="http://java.sun.com/jsp/jstl/core" %>
 <%@ taglib prefix="utility" uri="http://www.jahia.org/tags/utilityLib" %>
 <%@ page import="org.jahia.bin.JahiaAdministration" %>
-<utility:setBundle basename="JahiaGateway" var="gatewayBundle" templateName="Jahia Gateway" useUILocale="true"/>
+<utility:setBundle basename="JahiaGatewaySandbox" var="gatewayBundle" templateName="Jahia Gateway Sandbox" useUILocale="true"/>
 <%--@elvariable id="transformer" type="org.jahia.modules.gateway.mail.MailToJSON"--%>
 <%--@elvariable id="transformers" type="java.util.Map"--%>
 <c:set var="transformer" value="${transformers[param.transformerName]}"/>
@@ -31,11 +31,13 @@
         <fmt:message key="label.mailtojson.configure.regexp.list" bundle="${gatewayBundle}"/>
     </div>
 </div>
+<%--
 <div class="content-item-noborder">
     <c:forEach items="${transformer.regexps}" var="regexp" varStatus="status">
         <span>${status.count}&nbsp;:&nbsp;${regexp}</span><br/>
     </c:forEach>
 </div>
+--%>
 
 <div class="head headtop">
     <div class="object-title">
@@ -66,6 +68,7 @@
         <fmt:message key="label.mailtojson.configure.decoders.path.list" bundle="${gatewayBundle}"/>
     </div>
 </div>
+<%--
 <div class="content-item-noborder">
     <ol>
         <c:forEach items="${transformer.decoders}" var="decoder" varStatus="status">
@@ -78,4 +81,5 @@
         </c:forEach>
     </ol>
 </div>
+--%>
 

@@ -28,8 +28,8 @@ import java.util.Map;
  */
 public class GatewayAdministrationModule extends AbstractAdministrationModule {
     private GatewayService gatewayService;
-    private static final String MODULE_NAME = "Jahia Gateway";
-    private static final String BUNDLE_NAME = "JahiaGateway";
+    private static final String MODULE_NAME = "Jahia Gateway Sandbox";
+    private static final String BUNDLE_NAME = "JahiaGatewaySandbox";
     public static final String FEATURE = "org.jahia.gateway";
     public static final String JSP_NAME = "admin/gateway.jsp";
     private JahiaTemplateManagerService templateManagerService;

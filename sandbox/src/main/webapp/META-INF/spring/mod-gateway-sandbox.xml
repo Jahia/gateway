@@ -4,17 +4,21 @@
        xmlns:lang="http://www.springframework.org/schema/lang"
        xsi:schemaLocation="http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans-3.0.xsd http://www.springframework.org/schema/lang http://www.springframework.org/schema/lang/spring-lang-3.0.xsd">
 
-    <!--
-    <bean class="org.jahia.modules.gateway.decoders.NewsMailDecoderImpl">
+    <bean id="NewsMailDecoderImpl" class="org.jahia.modules.gateway.decoders.NewsMailDecoderImpl" parent="baseMailDecoder">
         <property name="key" value="news"/>
+        <property name="patternsToMatch">
+            <list>
+                <value>create news:([a-zA-Z ]+) located in ([a-zA-Z/]*)</value>
+            </list>
+        </property>
         <property name="paths">
             <map key-type="java.lang.String" value-type="java.lang.String">
                 <entry key="shared" value="/sites/systemsite/contents/news"/>
             </map>
         </property>
-        <property name="userManagerService" ref="JahiaUserManagerService" />
     </bean>
 
+    <!--
     <lang:groovy id="articleDecoder"
                  script-source="classpath:org/jahia/modules/gateway/decoders/ArticleMailDecoderImpl.groovy">
         <lang:property name="key" value="news"/>
@@ -47,9 +51,7 @@
             <map key-type="java.lang.String" value-type="org.jahia.modules.gateway.admin.forms.StartPointFormHandler">
                 <entry key="mail">
                     <!--key will be used to define the jsp file associated with this form here we will look for a form name mail.form.jsp-->
-                    <bean class="org.jahia.modules.gateway.admin.forms.ImapMailStartPointFormHandlerImpl">
-                        <property name="template" ref="jcrTemplate"/>
-                    </bean>
+                    <bean class="org.jahia.modules.gateway.admin.forms.ImapMailStartPointFormHandlerImpl"/>
                 </entry>
                 <entry key="sql">
                     <bean class="org.jahia.modules.gateway.jdbc.SQLStartpoint">

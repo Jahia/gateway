@@ -12,7 +12,7 @@
 <%@ taglib uri="http://java.sun.com/jsp/jstl/core" prefix="c" %>
 <%@ taglib prefix="fmt" uri="http://java.sun.com/jsp/jstl/fmt" %>
 <%@ taglib prefix="utility" uri="http://www.jahia.org/tags/utilityLib" %>
-<utility:setBundle basename="JahiaGateway" var="gatewayBundle" templateName="Jahia Gateway" useUILocale="true"/>
+<utility:setBundle basename="JahiaGatewaySandbox" var="gatewayBundle" templateName="Jahia Gateway Sandbox" useUILocale="true"/>
 <div id="topTitle">
     <h1>Jahia</h1>
 
