@@ -43,7 +43,6 @@ import org.jahia.services.content.JCRCallback;
 import org.jahia.services.content.JCRNodeWrapper;
 import org.jahia.services.content.JCRSessionWrapper;
 import org.jahia.services.content.JCRTemplate;
-import org.springframework.beans.factory.InitializingBean;
 
 import javax.jcr.NodeIterator;
 import javax.jcr.PathNotFoundException;
@@ -51,11 +50,8 @@ import javax.jcr.RepositoryException;
 import java.util.*;
 
 /**
- * Created by IntelliJ IDEA.
- *
- * @author : rincevent
- * @since : JAHIA 6.6
- *        Created : 11/7/11
+ * @author rincevent
+ * @since JAHIA 6.6
  */
 public class GatewayService implements CamelContextAware, JahiaAfterInitializationService {
     private transient static Logger logger = Logger.getLogger(GatewayService.class);
