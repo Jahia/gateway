@@ -198,11 +198,8 @@ public class JSONToJCRDeserializer implements CamelHandler {
                                                         doUpdate ? nodeName : JCRContentUtils.findAvailableNodeName(
                                                                 node, nodeName), is, contentType);
                                                 if (jsonObject.has("tags")) {
-                                                    String[] tags = jsonObject.getString("tags").split(",");
                                                     String siteKey = newNode.getResolveSite().getSiteKey();
-                                                    for (String tag : tags) {
-                                                        taggingService.tag(newNode.getPath(), tag.trim(), siteKey, true, session);
-                                                    }
+                                                    taggingService.tag(newNode.getPath(), jsonObject.getString("tags"), siteKey, true, session);
                                                 }
                                             } catch (IOException e) {
                                                 logger.error(e.getMessage(), e);
@@ -271,11 +268,8 @@ public class JSONToJCRDeserializer implements CamelHandler {
                 }
             }
             if (jsonObject.has("tags")) {
-                String[] tags = jsonObject.getString("tags").split(",");
                 String siteKey = newNode.getResolveSite().getSiteKey();
-                for (String tag : tags) {
-                    taggingService.tag(newNode.getPath(), tag.trim(), siteKey, true, session);
-                }
+                taggingService.tag(newNode.getPath(), jsonObject.getString("tags"), siteKey, true, session);
             }
             if (saveFileUnderNode && jsonObject.has("files")) {
                 MimetypesFileTypeMap mimetypesFileTypeMap = new MimetypesFileTypeMap();
