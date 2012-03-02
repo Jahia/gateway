@@ -194,9 +194,16 @@ public class JSONToJCRDeserializer implements CamelHandler {
                                             InputStream is = null;
                                             try {
                                                 is = FileUtils.openInputStream(file);
-                                                node.uploadFile(
-                                                        doUpdate ? nodeName : JCRContentUtils.findAvailableNodeName(node, nodeName),
-                                                        is, contentType);
+                                                final JCRNodeWrapper newNode = node.uploadFile(
+                                                        doUpdate ? nodeName : JCRContentUtils.findAvailableNodeName(
+                                                                node, nodeName), is, contentType);
+                                                if (jsonObject.has("tags")) {
+                                                    String[] tags = jsonObject.getString("tags").split(",");
+                                                    String siteKey = newNode.getResolveSite().getSiteKey();
+                                                    for (String tag : tags) {
+                                                        taggingService.tag(newNode.getPath(), tag.trim(), siteKey, true, session);
+                                                    }
+                                                }
                                             } catch (IOException e) {
                                                 logger.error(e.getMessage(), e);
                                             } finally {
