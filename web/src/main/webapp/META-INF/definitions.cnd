@@ -21,7 +21,7 @@
 
 [jmix:gtwStartPoint] mixin
 
-[jnt:imapStartPoint] > nt:base, jmix:gtwStartPoint
+[jnt:mailStartPoint] > nt:base, jmix:gtwStartPoint
  - uri (string) indexed=no
  - password (string,text[password]) indexed=no
 

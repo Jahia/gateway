@@ -1,7 +1,12 @@
 /**
+ * This file is part of Jahia, next-generation open source CMS:
+ * Jahia's next-generation, open source CMS stems from a widely acknowledged vision
+ * of enterprise application convergence - web, search, document, social and portal -
+ * unified by the simplicity of web content management.
  *
- * This file is part of Jahia: An integrated WCM, DMS and Portal Solution
- * Copyright (C) 2002-2009 Jahia Limited. All rights reserved.
+ * For more information, please visit http://www.jahia.com.
+ *
+ * Copyright (C) 2002-2012 Jahia Solutions Group SA. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -20,15 +25,17 @@
  * As a special exception to the terms and conditions of version 2.0 of
  * the GPL (or any later version), you may redistribute this Program in connection
  * with Free/Libre and Open Source Software ("FLOSS") applications as described
- * in Jahia's FLOSS exception. You should have recieved a copy of the text
+ * in Jahia's FLOSS exception. You should have received a copy of the text
  * describing the FLOSS exception, and it is also available here:
- * http://www.jahia.com/license"
+ * http://www.jahia.com/license
  *
- * Commercial and Supported Versions of the program
- * Alternatively, commercial and supported versions of the program may be used
- * in accordance with the terms contained in a separate written agreement
- * between you and Jahia Limited. If you are unsure which license is appropriate
- * for your use, please contact the sales department at sales@jahia.com.
+ * Commercial and Supported Versions of the program (dual licensing):
+ * alternatively, commercial and supported versions of the program may be used
+ * in accordance with the terms and conditions contained in a separate
+ * written agreement between you and Jahia Solutions Group SA.
+ *
+ * If you are unsure which license is appropriate for your use,
+ * please contact the sales department at sales@jahia.com.
  */
 package org.jahia.modules.gateway;
 
@@ -36,13 +43,14 @@ import org.apache.camel.CamelContext;
 import org.apache.camel.CamelContextAware;
 import org.apache.camel.builder.RouteBuilder;
 import org.apache.camel.model.ProcessorDefinition;
-import org.apache.log4j.Logger;
 import org.jahia.exceptions.JahiaInitializationException;
 import org.jahia.services.JahiaAfterInitializationService;
 import org.jahia.services.content.JCRCallback;
 import org.jahia.services.content.JCRNodeWrapper;
 import org.jahia.services.content.JCRSessionWrapper;
 import org.jahia.services.content.JCRTemplate;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import javax.jcr.NodeIterator;
 import javax.jcr.PathNotFoundException;
@@ -50,11 +58,13 @@ import javax.jcr.RepositoryException;
 import java.util.*;
 
 /**
+ * Content gateway service implementation that handles Camel routes.
+ *  
  * @author rincevent
  * @since JAHIA 6.6
  */
 public class GatewayService implements CamelContextAware, JahiaAfterInitializationService {
-    private transient static Logger logger = Logger.getLogger(GatewayService.class);
+    private static Logger logger = LoggerFactory.getLogger(GatewayService.class);
     private CamelContext camelContext;
     private Map<String, CamelHandler> deserializers;
     private Map<String, CamelHandler> transformers;
@@ -151,35 +161,37 @@ public class GatewayService implements CamelContextAware, JahiaAfterInitializati
             if (strings.length > 1) {
                 List<String> handlers = new ArrayList<String>();
                 handlers.addAll(Arrays.asList(strings).subList(1, strings.length));
-                addRoute(strings[0], handlers);
+                addRouteInternal(entry.getKey(), strings[0], handlers);
             }
         }
     }
 
-    public void addRoute(final String name, final String routeStartPointKey, final List<String> handlers) {
-        if (addRoute(routeStartPointKey, handlers)) {
+    public void addRoute(final String name, final String routeStartPointKey, final List<String> handlers, boolean createNodeForRoute) {
+        if (addRouteInternal(name, routeStartPointKey, handlers)) {
             final StringBuilder route = new StringBuilder(routeStartPointKey);
             for (String handler : handlers) {
                 route.append("->").append(handler);
             }
             routes.put(name, route.toString());
-            try {
-                template.doExecuteWithSystemSession(new JCRCallback<Object>() {
-                    public Object doInJCR(JCRSessionWrapper session) throws RepositoryException {
-                        JCRNodeWrapper node = session.getNode("/gateway/routes");
-                        JCRNodeWrapper jcrNodeWrapper = node.addNode(name, "jnt:gtwRoute");
-                        jcrNodeWrapper.setProperty("route", route.toString());
-                        session.save();
-                        return null;
-                    }
-                });
-            } catch (RepositoryException e) {
-                e.printStackTrace();
+            if (createNodeForRoute) {
+                try {
+                    template.doExecuteWithSystemSession(new JCRCallback<Object>() {
+                        public Object doInJCR(JCRSessionWrapper session) throws RepositoryException {
+                            JCRNodeWrapper node = session.getNode("/gateway/routes");
+                            JCRNodeWrapper jcrNodeWrapper = node.addNode(name, "jnt:gtwRoute");
+                            jcrNodeWrapper.setProperty("route", route.toString());
+                            session.save();
+                            return null;
+                        }
+                    });
+                } catch (RepositoryException e) {
+                    logger.error(e.getMessage(), e);
+                }
             }
         }
     }
 
-    private boolean addRoute(final String routeStartPointKey, final List<String> handlers) {
+    private boolean addRouteInternal(final String name, final String routeStartPointKey, final List<String> handlers) {
         try {
             camelContext.addRoutes(new RouteBuilder() {
                 @Override
@@ -192,7 +204,7 @@ public class GatewayService implements CamelContextAware, JahiaAfterInitializati
                             route = deserializers.get(handler).appendToRoute(route);
                         }
                     }
-
+                    route.setId(name);
                 }
             });
             return true;

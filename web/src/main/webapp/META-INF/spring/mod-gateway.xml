@@ -44,8 +44,8 @@
             <bean class="org.jahia.modules.gateway.CamelStartPointFactory">
                 <property name="startPointsClasses">
                     <map key-type="java.lang.String" value-type="java.lang.String">
-                        <entry key="jnt:imapStartPoint"
-                               value="org.jahia.modules.gateway.admin.forms.ImapMailStartPointFormHandlerImpl"/>
+                        <entry key="jnt:mailStartPoint"
+                               value="org.jahia.modules.gateway.admin.forms.MailStartPointFormHandlerImpl"/>
                         <entry key="jnt:sqlStartPoint"
                                value="org.jahia.modules.gateway.jdbc.SQLStartpoint"/>
                     </map>

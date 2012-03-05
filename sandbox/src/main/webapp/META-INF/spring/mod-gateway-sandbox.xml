@@ -51,7 +51,7 @@
             <map key-type="java.lang.String" value-type="org.jahia.modules.gateway.admin.forms.StartPointFormHandler">
                 <entry key="mail">
                     <!--key will be used to define the jsp file associated with this form here we will look for a form name mail.form.jsp-->
-                    <bean class="org.jahia.modules.gateway.admin.forms.ImapMailStartPointFormHandlerImpl"/>
+                    <bean class="org.jahia.modules.gateway.admin.forms.MailStartPointFormHandlerImpl"/>
                 </entry>
                 <entry key="sql">
                     <bean class="org.jahia.modules.gateway.jdbc.SQLStartpoint">
