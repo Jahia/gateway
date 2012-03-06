@@ -131,15 +131,7 @@ public class GatewayService implements CamelContextAware, JahiaAfterInitializati
                         NodeIterator nodes = node.getNodes();
                         while (nodes.hasNext()) {
                             JCRNodeWrapper next = (JCRNodeWrapper) nodes.nextNode();
-                            try {
-                                routeStartPoints.put(next.getName(), camelStartPointFactory.createCamelStartPoint(next));
-                            } catch (IllegalAccessException e) {
-                                logger.error(e.getMessage(), e);
-                            } catch (InstantiationException e) {
-                                logger.error(e.getMessage(), e);
-                            } catch (ClassNotFoundException e) {
-                                logger.error(e.getMessage(), e);
-                            }
+                            addStartPoint(next);
                         }
                         node = session.getNode("/gateway/routes");
                         nodes = node.getNodes();
@@ -163,6 +155,18 @@ public class GatewayService implements CamelContextAware, JahiaAfterInitializati
                 handlers.addAll(Arrays.asList(strings).subList(1, strings.length));
                 addRouteInternal(entry.getKey(), strings[0], handlers);
             }
+        }
+    }
+
+    public void addStartPoint(JCRNodeWrapper startPointNode) throws RepositoryException {
+        try {
+            routeStartPoints.put(startPointNode.getName(), camelStartPointFactory.createCamelStartPoint(startPointNode));
+        } catch (IllegalAccessException e) {
+            logger.error(e.getMessage(), e);
+        } catch (InstantiationException e) {
+            logger.error(e.getMessage(), e);
+        } catch (ClassNotFoundException e) {
+            logger.error(e.getMessage(), e);
         }
     }
 
