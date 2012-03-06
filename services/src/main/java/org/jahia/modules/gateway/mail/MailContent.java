@@ -102,7 +102,10 @@ public class MailContent {
     }
 
     private String body = null;
+    
     private List<FileItem> files = new LinkedList<FileItem>();
+    
+    private boolean isHtml;
 
     public String getBody() {
         return body;
@@ -112,12 +115,25 @@ public class MailContent {
         return files;
     }
 
+    public boolean isHtml() {
+        return isHtml;
+    }
+
     public void setBody(String body) {
         this.body = body;
     }
 
+    public void setBodyHtml(String body) {
+        this.body = body;
+        isHtml = true;
+    }
+
     public void setFiles(List<FileItem> files) {
         this.files = files;
+    }
+
+    public void setHtml(boolean isHtml) {
+        this.isHtml = isHtml;
     }
 
     @Override

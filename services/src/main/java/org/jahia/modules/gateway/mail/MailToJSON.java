@@ -232,8 +232,13 @@ public class MailToJSON implements ConfigurableCamelHandler, JahiaAfterInitializ
                 parseMailMessage(bodyPart, content);
             }
         } else if (mailContent instanceof String) {
-            if (content.getBody() == null || part.isMimeType("text/html")) {
-                content.setBody((String) mailContent);
+            boolean isHtml = false;
+            if (content.getBody() == null || (isHtml = part.isMimeType("text/html"))) {
+                if (isHtml) {
+                    content.setBodyHtml((String) mailContent);
+                } else {
+                    content.setBody((String) mailContent);
+                }
             }
         } else if (mailContent instanceof InputStream) {
             File tempFile = File.createTempFile("mail2json-", null);
