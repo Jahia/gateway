@@ -163,6 +163,8 @@ public class MailToJSON implements ConfigurableCamelHandler, JahiaAfterInitializ
                             mailContent.getFiles());
                 }
 
+                boolean deleteFiles = false;
+                
                 String jsonOutput = null;
                 try {
                     jsonOutput = decoder.decode(matchingPattern, mailContent, mailMessage);
@@ -170,11 +172,7 @@ public class MailToJSON implements ConfigurableCamelHandler, JahiaAfterInitializ
                     logger.error("Error processing e-mail message with subject \"" + subject
                             + "\" using decoder " + decoder.getKey() + " from " + sender
                             + ", Cause: " + e.getMessage(), e);
-                    if (!mailContent.getFiles().isEmpty()) {
-                        for (FileItem file : mailContent.getFiles()) {
-                            FileUtils.deleteQuietly(file.getFile());
-                        }
-                    }
+                    deleteFiles = true;
                 }
                 if (StringUtils.isNotBlank(jsonOutput)) {
                     if (logger.isTraceEnabled()) {
@@ -183,6 +181,14 @@ public class MailToJSON implements ConfigurableCamelHandler, JahiaAfterInitializ
                     DefaultMessage in = new DefaultMessage();
                     in.setBody(jsonOutput);
                     exchange.setOut(in);
+                } else {
+                    deleteFiles = true;
+                }
+                
+                if (deleteFiles && !mailContent.getFiles().isEmpty()) {
+                    for (FileItem file : mailContent.getFiles()) {
+                        FileUtils.deleteQuietly(file.getFile());
+                    }
                 }
             } else {
                 if (logger.isDebugEnabled()) {
