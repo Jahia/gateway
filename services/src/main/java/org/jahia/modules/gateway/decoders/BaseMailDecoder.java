@@ -44,6 +44,8 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Properties;
 import java.util.Set;
+import java.util.StringTokenizer;
+import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 import javax.mail.Address;
@@ -52,6 +54,7 @@ import javax.mail.MessagingException;
 import javax.mail.internet.InternetAddress;
 
 import org.apache.commons.lang.StringUtils;
+import org.jahia.modules.gateway.mail.MailContent;
 import org.jahia.modules.gateway.mail.MailContent.FileItem;
 import org.jahia.modules.gateway.mail.MailDecoder;
 import org.jahia.services.usermanager.JahiaUser;
@@ -69,7 +72,62 @@ import org.slf4j.LoggerFactory;
  */
 public abstract class BaseMailDecoder implements MailDecoder {
 
+    public static final Pattern LINE_PATTERN = Pattern.compile("[\\r\\n]+");
+
     private static final Logger logger = LoggerFactory.getLogger(BaseMailDecoder.class);
+
+    public static final Pattern TAGS_PATTERN = Pattern.compile(
+            "^\\s*(?:.*<.*>)?tags:([^<>]+)(?:<.*\\r*\\n*)?$", Pattern.CASE_INSENSITIVE);;
+
+    public static final Pattern TITLE_PATTERN = Pattern.compile(
+            "^\\s*(?:.*<.*>)?(?:title|titre|titel):([^<>]+)(?:<.*\\r*\\n*)?$",
+            Pattern.CASE_INSENSITIVE);
+
+    protected static String retrieveToken(MailContent mailContent, Pattern tokenPattern) {
+        if (mailContent.getBody() == null) {
+            return null;
+        }
+        String content = mailContent.getBody();
+        String token = null;
+        String[] lines = LINE_PATTERN.split(content);
+        int i = 0;
+        for (; i < lines.length; i++) {
+            Matcher m = tokenPattern.matcher(lines[i]);
+            if (m.matches()) {
+                token = m.group(1);
+                break;
+            }
+        }
+
+        return StringUtils.isNotBlank(token) ? token.trim() : null;
+    }
+
+    protected static String retrieveTokenAndRemove(MailContent mailContent, Pattern tokenPattern) {
+        if (mailContent.getBody() == null) {
+            return null;
+        }
+        String content = mailContent.getBody();
+        StringBuilder resultContent = new StringBuilder();
+        String token = null;
+        StringTokenizer lineTokenizer = new StringTokenizer(content, "\r\n", true);
+        while (lineTokenizer.hasMoreTokens()) {
+            String line = lineTokenizer.nextToken();
+            Matcher m = tokenPattern.matcher(line);
+            if (m.matches()) {
+                token = m.group(1);
+                break;
+            } else {
+                resultContent.append(line);
+            }
+        }
+        while (lineTokenizer.hasMoreTokens()) {
+            resultContent.append(lineTokenizer.nextToken());
+        }
+
+        mailContent.setBody(resultContent.toString());
+
+        return StringUtils.isNotBlank(token) ? token.trim() : null;
+    }
 
     public static JSONObject toJSON(FileItem fileItem) {
         JSONObject json = new JSONObject();
@@ -145,8 +203,31 @@ public abstract class BaseMailDecoder implements MailDecoder {
         return user;
     }
 
+    protected String getSenderEmail(Message message) {
+        String from = null;
+        try {
+            Address[] senders = message.getFrom();
+            if (senders != null && senders.length > 0) {
+                from = ((InternetAddress) senders[0]).getAddress();
+            }
+        } catch (MessagingException e) {
+            logger.error(e.getMessage(), e);
+        }
+        return from;
+    }
+
     protected JahiaUserManagerService getUserManagerService() {
         return userManagerService;
+    }
+
+    protected String retrieveTags(MailContent mailContent, boolean removeLineWithTags) {
+        return removeLineWithTags ? retrieveTokenAndRemove(mailContent, TAGS_PATTERN)
+                : retrieveToken(mailContent, TAGS_PATTERN);
+    }
+
+    protected String retrieveTitle(MailContent mailContent, boolean removeLineWithTitle) {
+        return removeLineWithTitle ? retrieveTokenAndRemove(mailContent, TITLE_PATTERN)
+                : retrieveToken(mailContent, TITLE_PATTERN);
     }
 
     public void setKey(String key) {
@@ -167,5 +248,4 @@ public abstract class BaseMailDecoder implements MailDecoder {
     public void setUserManagerService(JahiaUserManagerService userManagerService) {
         this.userManagerService = userManagerService;
     }
-
 }
