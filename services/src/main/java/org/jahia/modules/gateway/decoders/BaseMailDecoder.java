@@ -107,25 +107,25 @@ public abstract class BaseMailDecoder implements MailDecoder {
             return null;
         }
         String content = mailContent.getBody();
-        StringBuilder resultContent = new StringBuilder();
         String token = null;
-        StringTokenizer lineTokenizer = new StringTokenizer(content, "\r\n", true);
-        while (lineTokenizer.hasMoreTokens()) {
-            String line = lineTokenizer.nextToken();
-            Matcher m = tokenPattern.matcher(line);
-            if (m.matches()) {
-                token = m.group(1);
-                break;
-            } else {
-                resultContent.append(line);
+        if (StringUtils.isNotBlank(content)) {
+            StringBuilder resultContent = new StringBuilder();
+            StringTokenizer lineTokenizer = new StringTokenizer(content, "\r\n", true);
+            while (lineTokenizer.hasMoreTokens()) {
+                String line = lineTokenizer.nextToken();
+                Matcher m = tokenPattern.matcher(line);
+                if (m.matches()) {
+                    token = m.group(1);
+                    break;
+                } else {
+                    resultContent.append(line);
+                }
             }
+            while (lineTokenizer.hasMoreTokens()) {
+                resultContent.append(lineTokenizer.nextToken());
+            }
+            mailContent.setBody(resultContent.toString());
         }
-        while (lineTokenizer.hasMoreTokens()) {
-            resultContent.append(lineTokenizer.nextToken());
-        }
-
-        mailContent.setBody(resultContent.toString());
-
         return StringUtils.isNotBlank(token) ? token.trim() : null;
     }
 
