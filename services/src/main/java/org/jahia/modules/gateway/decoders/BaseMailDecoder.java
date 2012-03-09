@@ -53,6 +53,9 @@ import javax.mail.Message;
 import javax.mail.MessagingException;
 import javax.mail.internet.InternetAddress;
 
+import net.htmlparser.jericho.Element;
+import net.htmlparser.jericho.OutputDocument;
+import net.htmlparser.jericho.Source;
 import org.apache.commons.lang.StringUtils;
 import org.jahia.modules.gateway.mail.MailContent;
 import org.jahia.modules.gateway.mail.MailContent.FileItem;
@@ -83,50 +86,26 @@ public abstract class BaseMailDecoder implements MailDecoder {
             "^\\s*(?:.*<.*>)?(?:title|titre|titel):([^<>]+)(?:<.*\\r*\\n*)?$",
             Pattern.CASE_INSENSITIVE);
 
-    protected static String retrieveToken(MailContent mailContent, Pattern tokenPattern) {
-        if (mailContent.getBody() == null) {
-            return null;
-        }
-        String content = mailContent.getBody();
+    protected static String retrieveToken(MailContent mailContent, Pattern tokenPattern, boolean removeLineWithToken) {
+        Source source = new Source(mailContent.getBody());
+        OutputDocument outputDocument = new OutputDocument(source);
+        Element body = source.getNextElement(0, "body");
+        List<Element> childElements = body.getChildElements();
         String token = null;
-        String[] lines = LINE_PATTERN.split(content);
-        int i = 0;
-        for (; i < lines.length; i++) {
-            Matcher m = tokenPattern.matcher(lines[i]);
+        for (Element element : childElements) {
+            Matcher m = tokenPattern.matcher(element.toString());
             if (m.matches()) {
                 token = m.group(1);
+                if (removeLineWithToken) {
+                    outputDocument.remove(element);
+                }
                 break;
             }
         }
-
-        return StringUtils.isNotBlank(token) ? token.trim() : null;
-    }
-
-    protected static String retrieveTokenAndRemove(MailContent mailContent, Pattern tokenPattern) {
-        if (mailContent.getBody() == null) {
-            return null;
+        if (removeLineWithToken) {
+            mailContent.setBody(outputDocument.toString());
         }
-        String content = mailContent.getBody();
-        String token = null;
-        if (StringUtils.isNotBlank(content)) {
-            StringBuilder resultContent = new StringBuilder();
-            StringTokenizer lineTokenizer = new StringTokenizer(content, "\r\n", true);
-            while (lineTokenizer.hasMoreTokens()) {
-                String line = lineTokenizer.nextToken();
-                Matcher m = tokenPattern.matcher(line);
-                if (m.matches()) {
-                    token = m.group(1);
-                    break;
-                } else {
-                    resultContent.append(line);
-                }
-            }
-            while (lineTokenizer.hasMoreTokens()) {
-                resultContent.append(lineTokenizer.nextToken());
-            }
-            mailContent.setBody(resultContent.toString());
-        }
-        return StringUtils.isNotBlank(token) ? token.trim() : null;
+        return token;
     }
 
     public static JSONObject toJSON(FileItem fileItem) {
@@ -221,13 +200,11 @@ public abstract class BaseMailDecoder implements MailDecoder {
     }
 
     protected String retrieveTags(MailContent mailContent, boolean removeLineWithTags) {
-        return removeLineWithTags ? retrieveTokenAndRemove(mailContent, TAGS_PATTERN)
-                : retrieveToken(mailContent, TAGS_PATTERN);
+        return retrieveToken(mailContent, TAGS_PATTERN, removeLineWithTags);
     }
 
     protected String retrieveTitle(MailContent mailContent, boolean removeLineWithTitle) {
-        return removeLineWithTitle ? retrieveTokenAndRemove(mailContent, TITLE_PATTERN)
-                : retrieveToken(mailContent, TITLE_PATTERN);
+        return retrieveToken(mailContent, TITLE_PATTERN, removeLineWithTitle);
     }
 
     public void setKey(String key) {
