@@ -87,23 +87,77 @@ public abstract class BaseMailDecoder implements MailDecoder {
             Pattern.CASE_INSENSITIVE);
 
     protected static String retrieveToken(MailContent mailContent, Pattern tokenPattern, boolean removeLineWithToken) {
-        Source source = new Source(mailContent.getBody());
-        OutputDocument outputDocument = new OutputDocument(source);
-        Element body = source.getNextElement(0, "body");
-        List<Element> childElements = body.getChildElements();
         String token = null;
-        for (Element element : childElements) {
-            Matcher m = tokenPattern.matcher(element.toString());
-            if (m.matches()) {
-                token = m.group(1);
-                if (removeLineWithToken) {
-                    outputDocument.remove(element);
+        String content = mailContent.getBody();
+        if (StringUtils.isNotBlank(content)) {
+            if (mailContent.isHtml()) {
+                String contentStart = "";
+                int firstTagIndex = content.indexOf('<'); // handle partial html content
+                if (firstTagIndex > 0) {
+                    contentStart = content.substring(0, firstTagIndex);
+                    StringBuilder resultContent = new StringBuilder();
+                    StringTokenizer lineTokenizer = new StringTokenizer(contentStart, "\r\n", true);
+                    while (lineTokenizer.hasMoreTokens()) {
+                        String line = lineTokenizer.nextToken();
+                        Matcher m = tokenPattern.matcher(line);
+                        if (m.matches()) {
+                            token = m.group(1);
+                            if (!removeLineWithToken) {
+                                resultContent.append(line);
+                            }
+                            break;
+                        } else {
+                            resultContent.append(line);
+                        }
+                    }
+                    while (lineTokenizer.hasMoreTokens()) {
+                        resultContent.append(lineTokenizer.nextToken());
+                    }
+                    contentStart = resultContent.toString();
+                    content = content.substring(firstTagIndex);
                 }
-                break;
+                if (token == null) {
+                    Source source = new Source(content);
+                    OutputDocument outputDocument = new OutputDocument(source);
+                    List<Element> childElements = source.getAllElements();
+                    for (Element element : childElements) {
+                        Matcher m = tokenPattern.matcher(element.toString());
+                        if (m.matches()) {
+                            token = m.group(1);
+                            if (removeLineWithToken) {
+                                outputDocument.remove(element);
+                            }
+                            break;
+                        }
+                    }
+                    content = outputDocument.toString();
+                }
+                if (removeLineWithToken) {
+                    mailContent.setBody(contentStart + content);
+                }
+            } else {
+                StringBuilder resultContent = new StringBuilder();
+                StringTokenizer lineTokenizer = new StringTokenizer(content, "\r\n", true);
+                while (lineTokenizer.hasMoreTokens()) {
+                    String line = lineTokenizer.nextToken();
+                    Matcher m = tokenPattern.matcher(line);
+                    if (m.matches()) {
+                        token = m.group(1);
+                        if (!removeLineWithToken) {
+                            resultContent.append(line);
+                        }
+                        break;
+                    } else {
+                        resultContent.append(line);
+                    }
+                }
+                while (lineTokenizer.hasMoreTokens()) {
+                    resultContent.append(lineTokenizer.nextToken());
+                }
+                if (removeLineWithToken) {
+                    mailContent.setBody(resultContent.toString());
+                }
             }
-        }
-        if (removeLineWithToken) {
-            mailContent.setBody(outputDocument.toString());
         }
         return token;
     }
