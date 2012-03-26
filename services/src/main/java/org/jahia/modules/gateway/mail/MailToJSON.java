@@ -206,6 +206,9 @@ public class MailToJSON implements ConfigurableCamelHandler, JahiaAfterInitializ
     }
 
     public void initAfterAllServicesAreStarted() throws JahiaInitializationException {
+        if (System.getProperty("mail.mime.decodefilename") == null) {
+            System.setProperty("mail.mime.decodefilename", "true");
+        }
         try {
             JCRTemplate.getInstance().doExecuteWithSystemSession(new JCRCallback<Object>() {
                 public Object doInJCR(JCRSessionWrapper session) throws RepositoryException {
@@ -237,7 +240,7 @@ public class MailToJSON implements ConfigurableCamelHandler, JahiaAfterInitializ
                 BodyPart bodyPart = mailMessageContent.getBodyPart(i);
                 parseMailMessage(bodyPart, content);
             }
-        } else if (mailContent instanceof String) {
+        } else if (mailContent instanceof String && part.getDisposition() == null) {
             boolean isHtml = false;
             if (content.getBody() == null || (isHtml = part.isMimeType("text/html"))) {
                 if (isHtml) {
@@ -246,11 +249,11 @@ public class MailToJSON implements ConfigurableCamelHandler, JahiaAfterInitializ
                     content.setBody((String) mailContent);
                 }
             }
-        } else if (mailContent instanceof InputStream) {
+        } else if (mailContent instanceof InputStream || mailContent instanceof String) {
             File tempFile = File.createTempFile("mail2json-", null);
             try {
-                FileUtils.copyInputStreamToFile((InputStream) mailContent, tempFile);
-                content.getFiles().add(new FileItem(part.getFileName(), tempFile));
+                FileUtils.copyInputStreamToFile(mailContent instanceof InputStream ? (InputStream) mailContent : part.getInputStream(), tempFile);
+                content.getFiles().add(new FileItem(StringUtils.defaultIfEmpty(part.getFileName(), "unknown"), tempFile));
             } catch (IOException e) {
                 FileUtils.deleteQuietly(tempFile);
                 throw e;
