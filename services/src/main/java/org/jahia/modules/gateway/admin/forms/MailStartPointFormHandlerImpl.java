@@ -40,7 +40,7 @@ public class MailStartPointFormHandlerImpl implements StartPointFormHandler, Cam
         }
         String port = StringUtils.defaultIfEmpty(parameters.get("port"), "");
         if (port.length() > 0) {
-            port += ":";
+            port = ":"+port;
         }
         String username = StringUtils.defaultString(parameters.get("username"));
         String delay = StringUtils.defaultIfEmpty(parameters.get("delay"), "60000");
