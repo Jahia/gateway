@@ -105,7 +105,7 @@ public abstract class BaseMailDecoder implements MailDecoder {
                         resultContent.append(line);
                     } else {
                         line = line.replaceFirst(m.group(1), "");
-                        if (line.trim().isEmpty()) {
+                        if (line.trim().equals("")) {
                             lineTokenizer.nextToken();
                         } else {
                             resultContent.append(line);
