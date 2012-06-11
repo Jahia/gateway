@@ -58,18 +58,9 @@ public class NewsMailDecoderImpl extends BaseMailDecoder {
 
     public String decode(Pattern matchingPattern, MailContent parsedMailContent,
             Message originalMessage) throws Exception {
-        String subject = originalMessage.getSubject();
+        String title = originalMessage.getSubject();
+        String nodepath = retrieveToken(parsedMailContent, matchingPattern, 2);
 
-        String title = null;
-        String nodepath = null;
-
-        Matcher m = matchingPattern.matcher(subject);
-        if (m.matches() && m.groupCount() > 0) {
-            title = m.group(1);
-            if (m.groupCount() > 1) {
-                nodepath = m.group(2);
-            }
-        }
         nodepath = StringUtils.isNotBlank(nodepath) && paths.containsKey(nodepath) ? paths
                 .get(nodepath) : "/sites/systemsite/contents/news";
 

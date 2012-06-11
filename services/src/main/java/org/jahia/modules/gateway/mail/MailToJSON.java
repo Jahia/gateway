@@ -44,6 +44,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.util.LinkedHashMap;
 import java.util.Map;
+import java.util.StringTokenizer;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -57,6 +58,8 @@ import javax.mail.Part;
 import javax.mail.internet.MimeMultipart;
 import javax.servlet.http.HttpServletRequest;
 
+import net.htmlparser.jericho.Source;
+import net.htmlparser.jericho.SourceFormatter;
 import org.apache.camel.Exchange;
 import org.apache.camel.Handler;
 import org.apache.camel.component.mail.MailMessage;
@@ -110,6 +113,23 @@ public class MailToJSON implements ConfigurableCamelHandler, JahiaAfterInitializ
         return key;
     }
 
+    public boolean matches(MailContent mailContent, Pattern pattern) {
+        String content = mailContent.getBody();
+        if (StringUtils.isBlank(content)) {
+            return false;
+        }
+        content = content.replaceAll("<[^<>]+>", "\n");
+        StringTokenizer lineTokenizer = new StringTokenizer(content, "\r\n", false);
+        String line = null;
+        while (lineTokenizer.hasMoreTokens() && StringUtils.isBlank(line)) {
+            line = lineTokenizer.nextToken();
+        }
+        if (StringUtils.isBlank(line)) {
+            return false;
+        }
+        return pattern.matcher(line).matches();
+    }
+
     @Handler
     public void handleExchange(Exchange exchange) {
         assert exchange.getIn() instanceof MailMessage;
@@ -125,16 +145,25 @@ public class MailToJSON implements ConfigurableCamelHandler, JahiaAfterInitializ
                 logger.debug("Got message from {} with the subject: {}", sender, subject);
             }
 
+            // Parse content and multipart
+            MailContent mailContent = new MailContent();
+            parseMailMessage(mailMessage, mailContent);
+
+            if (logger.isTraceEnabled()) {
+                logger.trace("Parsed message body:\n{} \n\nFiles:\n{}", mailContent.getBody(),
+                        mailContent.getFiles());
+            }
+
             Pattern matchingPattern = null;
             MailDecoder decoder = decoders.get("<default>"); // get the default decoder if any
 
+            decodersLoop:
             for (MailDecoder examinee : decoders.values()) {
                 for (Pattern regexp : examinee.getPatterns()) {
-                    Matcher matcher = regexp.matcher(subject);
-                    if (matcher.matches()) {
+                    if (matches(mailContent, regexp)) {
                         decoder = examinee;
                         matchingPattern = regexp;
-                        break;
+                        break decodersLoop;
                     }
                 }
             }
@@ -143,24 +172,14 @@ public class MailToJSON implements ConfigurableCamelHandler, JahiaAfterInitializ
                 if (logger.isDebugEnabled()) {
                     if (matchingPattern == null) {
                         logger.debug(
-                                "Using default decoder '{}' ({}) for the e-mail with unmatched subject: {}",
-                                new String[] { decoder.getKey(), decoder.getClass().getName(),
-                                        subject });
+                                "Using default decoder '{}' ({}) for the e-mail",
+                                new String[] { decoder.getKey(), decoder.getClass().getName() });
                     } else {
                         logger.debug(
-                                "Using decoder '{}' ({}) for the e-mail with subject \"{}\", matching pattern \"{}\"",
+                                "Using decoder '{}' ({}) for the e-mail matching pattern \"{}\"",
                                 new String[] { decoder.getKey(), decoder.getClass().getName(),
-                                        subject, matchingPattern.pattern() });
+                                        matchingPattern.pattern() });
                     }
-                }
-
-                // Parse content and multipart
-                MailContent mailContent = new MailContent();
-                parseMailMessage(mailMessage, mailContent);
-
-                if (logger.isTraceEnabled()) {
-                    logger.trace("Parsed message body:\n{} \n\nFiles:\n{}", mailContent.getBody(),
-                            mailContent.getFiles());
                 }
 
                 boolean deleteFiles = false;

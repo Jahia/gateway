@@ -8,7 +8,7 @@
         <property name="key" value="news"/>
         <property name="patternsToMatch">
             <list>
-                <value>create news:([a-zA-Z ]+) located in ([a-zA-Z/]*)</value>
+                <value>news in ([a-zA-Z/]*)</value>
             </list>
         </property>
         <property name="paths">

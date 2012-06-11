@@ -80,13 +80,13 @@ public abstract class BaseMailDecoder implements MailDecoder {
 
     private static final Logger logger = LoggerFactory.getLogger(BaseMailDecoder.class);
 
-    public static final Pattern TAGS_PATTERN = Pattern.compile("^\\s*(?:<[^<>]+>)?(tags:([^<>]+))(?:<[^<>]+>)?$",
+    public static final Pattern TAGS_PATTERN = Pattern.compile("^\\s*(?:<[^<>]+>)*(tags:)(?:<[^<>]+>)*([^<>]+)(?:<[^<>]+>)*$",
             Pattern.CASE_INSENSITIVE);
 
     public static final Pattern TITLE_PATTERN = Pattern.compile(
-            "^\\s*(?:<[^<>]+>)?((?:title|titre|titel):([^<>]+))(?:<[^<>]+>)?$", Pattern.CASE_INSENSITIVE);
+            "^\\s*(?:<[^<>]+>)*((?:title|titre|titel):)(?:<[^<>]+>)*([^<>]+)(?:<[^<>]+>)*$", Pattern.CASE_INSENSITIVE);
 
-    protected static String retrieveToken(MailContent mailContent, Pattern tokenPattern, boolean removeLineWithToken) {
+    public String retrieveToken(MailContent mailContent, Pattern tokenPattern, int groupIndex) {
         String token = null;
         String content = mailContent.getBody();
         if (StringUtils.isNotBlank(content)) {
@@ -100,28 +100,30 @@ public abstract class BaseMailDecoder implements MailDecoder {
                 String line = lineTokenizer.nextToken();
                 Matcher m = tokenPattern.matcher(line);
                 if (m.matches()) {
-                    token = m.group(2);
-                    if (!removeLineWithToken) {
-                        resultContent.append(line);
+                    token = m.group(groupIndex);
+                    for (int g = 1; g <= m.groupCount(); g++) {
+                        line = line.replaceFirst(m.group(g), "");
+                    }
+                    if (line.trim().equals("")) {
+                        lineTokenizer.nextToken();
                     } else {
-                        line = line.replaceFirst(m.group(1), "");
-                        if (line.trim().equals("")) {
-                            lineTokenizer.nextToken();
-                        } else {
-                            resultContent.append(line);
-                        }
+                        resultContent.append(line);
                     }
                     break;
                 } else {
                     resultContent.append(line);
                 }
+                if (parsedTextDelimiter != null) {
+                    Matcher endMatcher = parsedTextDelimiter.matcher(line);
+                    if (endMatcher.matches()) {
+                        break;
+                    }
+                }
             }
             while (lineTokenizer.hasMoreTokens()) {
                 resultContent.append(lineTokenizer.nextToken());
             }
-            if (removeLineWithToken) {
-                mailContent.setBody(resultContent.toString());
-            }
+            mailContent.setBody(resultContent.toString());
         }
         return token;
     }
@@ -164,6 +166,8 @@ public abstract class BaseMailDecoder implements MailDecoder {
     private LinkedList<Pattern> patterns;
 
     private JahiaUserManagerService userManagerService;
+
+    protected Pattern parsedTextDelimiter;
 
     public String getKey() {
         return key;
@@ -217,12 +221,16 @@ public abstract class BaseMailDecoder implements MailDecoder {
         return userManagerService;
     }
 
-    protected String retrieveTags(MailContent mailContent, boolean removeLineWithTags) {
-        return retrieveToken(mailContent, TAGS_PATTERN, removeLineWithTags);
+    protected String retrieveTags(MailContent mailContent) {
+        return retrieveToken(mailContent, TAGS_PATTERN, 2);
     }
 
-    protected String retrieveTitle(MailContent mailContent, boolean removeLineWithTitle) {
-        return retrieveToken(mailContent, TITLE_PATTERN, removeLineWithTitle);
+    protected String retrieveTitle(MailContent mailContent) {
+        return retrieveToken(mailContent, TITLE_PATTERN, 2);
+    }
+
+    protected void removeDelimiter(MailContent mailContent) {
+        retrieveToken(mailContent, parsedTextDelimiter, 1);
     }
 
     public void setKey(String key) {
@@ -236,11 +244,16 @@ public abstract class BaseMailDecoder implements MailDecoder {
     public void setPatternsToMatch(List<String> patterns) {
         this.patterns = new LinkedList<Pattern>();
         for (String regexp : patterns) {
-            this.patterns.add(Pattern.compile(regexp, Pattern.CASE_INSENSITIVE));
+            this.patterns.add(Pattern.compile("^\\s*(?:<[^<>]+>)*?(" + regexp + ")(?:<[^<>]+>)*?$", Pattern.CASE_INSENSITIVE));
         }
     }
 
     public void setUserManagerService(JahiaUserManagerService userManagerService) {
         this.userManagerService = userManagerService;
     }
+
+    public void setParsedTextDelimiter(String parsedTextDelimiter) {
+        this.parsedTextDelimiter = Pattern.compile("^\\s*(?:<[^<>]+>)*?(" + parsedTextDelimiter + ")(?:<[^<>]+>)*?$", Pattern.CASE_INSENSITIVE);
+    }
+
 }
