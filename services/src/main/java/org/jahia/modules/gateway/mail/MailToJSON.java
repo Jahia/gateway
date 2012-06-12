@@ -58,6 +58,7 @@ import javax.mail.Part;
 import javax.mail.internet.MimeMultipart;
 import javax.servlet.http.HttpServletRequest;
 
+import net.htmlparser.jericho.OutputDocument;
 import net.htmlparser.jericho.Source;
 import net.htmlparser.jericho.SourceFormatter;
 import org.apache.camel.Exchange;
@@ -118,6 +119,11 @@ public class MailToJSON implements ConfigurableCamelHandler, JahiaAfterInitializ
         if (StringUtils.isBlank(content)) {
             return false;
         }
+        Source source = new Source(content);
+        OutputDocument outputDocument = new OutputDocument(source);
+        outputDocument.remove(source.getAllElements("head"));
+        outputDocument.remove(source.getAllElements("base"));
+        content = outputDocument.toString();
         content = content.replaceAll("<[^<>]+>", "\n");
         StringTokenizer lineTokenizer = new StringTokenizer(content, "\r\n", false);
         String line = null;
