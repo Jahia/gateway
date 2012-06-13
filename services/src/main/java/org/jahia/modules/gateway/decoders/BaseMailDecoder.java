@@ -53,8 +53,6 @@ import javax.mail.Message;
 import javax.mail.MessagingException;
 import javax.mail.internet.InternetAddress;
 
-import net.htmlparser.jericho.Element;
-import net.htmlparser.jericho.OutputDocument;
 import net.htmlparser.jericho.Source;
 import net.htmlparser.jericho.SourceFormatter;
 import org.apache.commons.lang.StringUtils;
@@ -79,12 +77,6 @@ public abstract class BaseMailDecoder implements MailDecoder {
     public static final Pattern LINE_PATTERN = Pattern.compile("\\r?\\n");
 
     private static final Logger logger = LoggerFactory.getLogger(BaseMailDecoder.class);
-
-    public static final Pattern TAGS_PATTERN = Pattern.compile("^\\s*(?:<[^<>]+>)*(tags:)(?:<[^<>]+>)*([^<>]+)(?:<[^<>]+>)*$",
-            Pattern.CASE_INSENSITIVE);
-
-    public static final Pattern TITLE_PATTERN = Pattern.compile(
-            "^\\s*(?:<[^<>]+>)*((?:title|titre|titel):)(?:<[^<>]+>)*([^<>]+)(?:<[^<>]+>)*$", Pattern.CASE_INSENSITIVE);
 
     public String retrieveToken(MailContent mailContent, Pattern tokenPattern, int groupIndex) {
         String token = null;
@@ -221,14 +213,6 @@ public abstract class BaseMailDecoder implements MailDecoder {
         return userManagerService;
     }
 
-    protected String retrieveTags(MailContent mailContent) {
-        return retrieveToken(mailContent, TAGS_PATTERN, 2);
-    }
-
-    protected String retrieveTitle(MailContent mailContent) {
-        return retrieveToken(mailContent, TITLE_PATTERN, 2);
-    }
-
     protected void removeDelimiter(MailContent mailContent) {
         retrieveToken(mailContent, parsedTextDelimiter, 1);
     }
@@ -244,7 +228,7 @@ public abstract class BaseMailDecoder implements MailDecoder {
     public void setPatternsToMatch(List<String> patterns) {
         this.patterns = new LinkedList<Pattern>();
         for (String regexp : patterns) {
-            this.patterns.add(Pattern.compile("^\\s*(?:<[^<>]+>)*?(" + regexp + ")(?:<[^<>]+>)*?$", Pattern.CASE_INSENSITIVE));
+            this.patterns.add(Pattern.compile(regexp, Pattern.CASE_INSENSITIVE));
         }
     }
 
@@ -253,7 +237,7 @@ public abstract class BaseMailDecoder implements MailDecoder {
     }
 
     public void setParsedTextDelimiter(String parsedTextDelimiter) {
-        this.parsedTextDelimiter = Pattern.compile("^\\s*(?:<[^<>]+>)*?(" + parsedTextDelimiter + ")(?:<[^<>]+>)*?$", Pattern.CASE_INSENSITIVE);
+        this.parsedTextDelimiter = Pattern.compile(parsedTextDelimiter, Pattern.CASE_INSENSITIVE);
     }
 
 }
