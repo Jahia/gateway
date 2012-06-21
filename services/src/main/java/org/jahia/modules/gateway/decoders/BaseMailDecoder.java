@@ -239,5 +239,9 @@ public abstract class BaseMailDecoder implements MailDecoder {
     public void setParsedTextDelimiter(String parsedTextDelimiter) {
         this.parsedTextDelimiter = Pattern.compile(parsedTextDelimiter, Pattern.CASE_INSENSITIVE);
     }
+    
+    public String getParsedTextDelimiter() {
+        return parsedTextDelimiter != null ? parsedTextDelimiter.toString() : "";
+    }    
 
 }
