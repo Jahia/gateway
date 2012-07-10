@@ -36,10 +36,9 @@ import org.apache.camel.Exchange;
 import org.apache.camel.Handler;
 import org.apache.camel.model.ProcessorDefinition;
 import org.apache.commons.io.FileUtils;
+import org.apache.commons.io.IOUtils;
 import org.apache.commons.lang.StringUtils;
 import org.apache.log4j.Logger;
-import org.apache.tika.io.IOUtils;
-import org.jahia.bin.Jahia;
 import org.jahia.services.content.*;
 import org.jahia.services.content.nodetypes.ExtendedNodeType;
 import org.jahia.services.content.nodetypes.ExtendedPropertyDefinition;
@@ -52,11 +51,11 @@ import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
 
-import javax.activation.MimetypesFileTypeMap;
 import javax.jcr.PathNotFoundException;
 import javax.jcr.RepositoryException;
 import javax.jcr.nodetype.NoSuchNodeTypeException;
 import java.io.File;
+import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.Iterator;
@@ -81,13 +80,12 @@ import java.util.Locale;
  * } "map of the properties for this node".
  * }
  *
- * @author : rincevent
- * @since : JAHIA 6.1
+ * @author rincevent
+ * @since JAHIA 6.6.1.0
  *        Created : 11/7/11
  */
 public class JSONToJCRDeserializer implements CamelHandler {
     private static Logger logger = Logger.getLogger(JSONToJCRDeserializer.class);
-    private static final MimetypesFileTypeMap MIME_TYPE_MAP = new MimetypesFileTypeMap();
     private JCRTemplate jcrTemplate;
     private TaggingService taggingService;
 
@@ -181,10 +179,7 @@ public class JSONToJCRDeserializer implements CamelHandler {
                                                 nodeName = file.getName();
                                             }
                                             if (contentType == null) {
-                                                contentType = StringUtils.defaultIfEmpty(Jahia
-                                                        .getStaticServletConfig()
-                                                        .getServletContext().getMimeType(nodeName.toLowerCase()),
-                                                        MIME_TYPE_MAP.getContentType(nodeName.toLowerCase()));
+                                                contentType = JCRContentUtils.getMimeType(nodeName);
                                             }
                                             
                                             if (file == null || nodeName == null || contentType == null) {
@@ -272,16 +267,19 @@ public class JSONToJCRDeserializer implements CamelHandler {
                 taggingService.tag(newNode.getPath(), jsonObject.getString("tags"), siteKey, true, session);
             }
             if (saveFileUnderNode && jsonObject.has("files")) {
-                MimetypesFileTypeMap mimetypesFileTypeMap = new MimetypesFileTypeMap();
                 JSONArray files = jsonObject.getJSONArray("files");
                 for (int i = 0; i < files.length(); i++) {
+                    FileInputStream is = null;
+                    File file = null;
                     try {
-                        File file = new File(files.getString(i));
-                        newNode.uploadFile(file.getName(), FileUtils.openInputStream(file),
-                                mimetypesFileTypeMap.getContentType(file));
-                        FileUtils.deleteQuietly(file);
+                        file = new File(files.getString(i));
+                        is = FileUtils.openInputStream(file);
+                        newNode.uploadFile(file.getName(), is, JCRContentUtils.getMimeType(file.getName()));
                     } catch (IOException e) {
                         logger.error(e.getMessage(), e);
+                    } finally {
+                        IOUtils.closeQuietly(is);
+                        FileUtils.deleteQuietly(file);
                     }
                 }
             }
@@ -334,10 +332,16 @@ public class JSONToJCRDeserializer implements CamelHandler {
                             File file = new File(value);
                             JCRNodeWrapper files = newNode.getSession().getNode(
                                     newNode.getResolveSite().getPath() + "/files");
-                            JCRNodeWrapper reference = files.uploadFile(file.getName(), FileUtils.openInputStream(file),
-                                    new MimetypesFileTypeMap().getContentType(file));
-                            newNode.setProperty(name, reference);
-                            FileUtils.deleteQuietly(file);
+                            FileInputStream is = null;
+                            try {
+                                is = FileUtils.openInputStream(file);
+                                JCRNodeWrapper reference = files.uploadFile(file.getName(), is,
+                                        JCRContentUtils.getMimeType(file.getName()));
+                                newNode.setProperty(name, reference);
+                            } finally {
+                                IOUtils.closeQuietly(is);
+                                FileUtils.deleteQuietly(file);
+                            }
                             break;
                         default:
                             newNode.setProperty(name, value);
