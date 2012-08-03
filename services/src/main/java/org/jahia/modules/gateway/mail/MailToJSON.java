@@ -267,7 +267,7 @@ public class MailToJSON implements ConfigurableCamelHandler, JahiaAfterInitializ
             }
         } else if (mailContent instanceof String && part.getDisposition() == null) {
             boolean isHtml = false;
-            if (content.getBody() == null || (isHtml = part.isMimeType("text/html"))) {
+            if (content.getBody() == null || ((isHtml = part.isMimeType("text/html")) && !content.isHtml())) {
                 if (isHtml) {
                     content.setBodyHtml((String) mailContent);
                 } else {
