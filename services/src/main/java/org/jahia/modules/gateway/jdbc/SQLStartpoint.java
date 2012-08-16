@@ -55,11 +55,8 @@ import static org.apache.camel.builder.Builder.body;
 import static org.apache.camel.builder.Builder.constant;
 
 /**
- * Created by IntelliJ IDEA.
- *
- * @author : rincevent
- * @since : JAHIA 6.1
- *        Created : 11/14/11
+ * @author rincevent
+ * Created : 11/14/11
  */
 public class SQLStartpoint implements StartPointFormHandler, CamelStartPoint {
     private transient static Logger logger = Logger.getLogger(SQLStartpoint.class);

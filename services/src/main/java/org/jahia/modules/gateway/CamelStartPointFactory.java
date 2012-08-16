@@ -39,11 +39,8 @@ import javax.jcr.RepositoryException;
 import java.util.Map;
 
 /**
- * Created by IntelliJ IDEA.
- *
- * @author : rincevent
- * @since : JAHIA 6.1
- *        Created : 11/14/11
+ * @author rincevent
+ * Created : 11/14/11
  */
 public class CamelStartPointFactory {
     private transient static Logger logger = Logger.getLogger(CamelStartPointFactory.class);

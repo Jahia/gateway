@@ -35,11 +35,8 @@ package org.jahia.modules.gateway;
 import org.apache.log4j.Logger;
 
 /**
- * Created by IntelliJ IDEA.
- *
- * @author : rincevent
- * @since : JAHIA 6.1
- *        Created : 11/15/11
+ * @author rincevent
+ * Created : 11/15/11
  */
 public class Constants {
     private transient static Logger logger = Logger.getLogger(Constants.class);
