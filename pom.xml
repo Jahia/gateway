@@ -48,7 +48,7 @@
     </parent>
     <artifactId>gateway-project</artifactId>
     <name>Jahia Gateway Project</name>
-	<version>1.0</version>
+	<version>1.1-SNAPSHOT</version>
     <packaging>pom</packaging>
     <description>This is a custom module for running on a Jahia server.</description>
     <scm>
