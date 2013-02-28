@@ -38,8 +38,8 @@
     If you are unsure which license is appropriate for your use,
     please contact the sales department at sales@jahia.com.
 -->
-
-<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
     <modelVersion>4.0.0</modelVersion>
     <parent>
         <artifactId>gateway-project</artifactId>
@@ -48,7 +48,7 @@
     </parent>
     <artifactId>gateway</artifactId>
     <name>Jahia Gateway</name>
-    <packaging>war</packaging>
+    <packaging>bundle</packaging>
     <description>This is a custom module for running on a Jahia server.</description>
 
     <dependencies>
@@ -98,41 +98,6 @@
         </dependency>
     </dependencies>
 
-    <build>
-        <plugins>
-            <plugin>
-                <groupId>org.apache.maven.plugins</groupId>
-                <artifactId>maven-war-plugin</artifactId>
-                <configuration>
-                    <webResources>
-                        <resource>
-                            <directory>${project.build.directory}</directory>
-                            <includes>
-                                <include>site/**</include>
-                            </includes>
-                        </resource>
-                    </webResources>
-                    <archive>
-                        <manifestEntries>
-                            <Implementation-Title>${project.name}</Implementation-Title>
-                            <Implementation-Version>${project.version}</Implementation-Version>
-                            <Implementation-Vendor>${jahia.manifest.vendor.name}</Implementation-Vendor>
-                            <Implementation-Vendor-Id>${jahia.manifest.vendor.id}</Implementation-Vendor-Id>
-                            <Implementation-URL>${jahia.manifest.vendor.url}</Implementation-URL>
-                            <Specification-Title>${project.name}</Specification-Title>
-                            <Specification-Version>${project.version}</Specification-Version>
-                            <Specification-Vendor>${jahia.manifest.vendor.name}</Specification-Vendor>
-                            <package-name>${project.name}</package-name>
-                            <depends>default</depends>
-                            <root-folder>${project.artifactId}</root-folder>
-                            <module-type>module</module-type>
-                        </manifestEntries>
-                    </archive>
-                    <archiveClasses>true</archiveClasses>
-                </configuration>
-            </plugin>
-        </plugins>
-    </build>
     <reporting>
         <plugins>
             <plugin>
@@ -150,4 +115,3 @@
         </plugins>
     </reporting>
 </project>
-
