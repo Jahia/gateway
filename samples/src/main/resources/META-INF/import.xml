@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="ISO-8859-1"?>
+<content xmlns:jcr="http://www.jcp.org/jcr/1.0"
+         xmlns:j="http://www.jahia.org/jahia/1.0" xmlns:jnt="http://www.jahia.org/jahia/nt/1.0"
+         xmlns:mix="http://www.jcp.org/jcr/mix/1.0" xmlns:jmix="http://www.jahia.org/jahia/mix/1.0"
+         xmlns:nt="http://www.jcp.org/jcr/nt/1.0">
+    <gateway jcr:primaryType="jnt:gateway">
+        <routes jcr:primaryType="jnt:gtwRoutes">
+            <gmailtest6-jcr jcr:primaryType="jnt:gtwRoute" route="gmailtest6-&gt;mailtojson-&gt;jsontojcr" />
+        </routes>
+        <startPoints jcr:primaryType="jnt:gtwStartPoints">
+            <gmailtest6 xmlns:jcr="http://www.jcp.org/jcr/1.0"
+                   jcr:primaryType="jnt:mailStartPoint"
+                   password="maCNmo6u+qS5B736oLXnuY2uqiHruPNZ"
+                   uri="imaps://imap.gmail.com?username=test6.jahia@gmail.com&amp;password=${password}&amp;consumer.delay=15000&amp;delete=true"/>
+        </startPoints>
+        <transformersData jcr:primaryType="jnt:gtwTransformers"/>
+    </gateway>
+
+</content>

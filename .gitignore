@@ -17,3 +17,7 @@
 /web/target
 /web/.classpath
 /web/.project
+/samples/target
+/samples/.classpath
+/samples/.project
+/samples/.settings

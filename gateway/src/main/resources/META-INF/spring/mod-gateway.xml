@@ -1,0 +1,61 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<beans xmlns="http://www.springframework.org/schema/beans"
+    xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+    xmlns:osgi="http://www.eclipse.org/gemini/blueprint/schema/blueprint"
+    xsi:schemaLocation="http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans-3.0.xsd
+                        http://www.eclipse.org/gemini/blueprint/schema/blueprint http://www.eclipse.org/gemini/blueprint/schema/blueprint/gemini-blueprint.xsd">
+
+    <bean id="mailtojson" class="org.jahia.modules.gateway.mail.MailToJSON"/>
+
+    <bean id="baseMailDecoder" class="org.jahia.modules.gateway.decoders.BaseMailDecoder" abstract="true">
+        <property name="userManagerService" ref="JahiaUserManagerService"/>
+    </bean>
+
+    <bean id="gatewayServiceImpl" class="org.jahia.modules.gateway.impl.GatewayServiceImpl">
+        <property name="camelContext" ref="jahiaNotificationContext"/>
+        <property name="template" ref="jcrTemplate"/>
+        <property name="deserializers">
+            <map key-type="java.lang.String" value-type="org.jahia.modules.gateway.CamelHandler">
+                <entry key="jsontojcr">
+                    <bean class="org.jahia.modules.gateway.JSONToJCRDeserializer">
+                        <property name="jcrTemplate" ref="jcrTemplate"/>
+                        <property name="taggingService" ref="org.jahia.services.tags.TaggingService"/>
+                    </bean>
+                </entry>
+            </map>
+
+        </property>
+        <property name="transformers">
+            <map key-type="java.lang.String" value-type="org.jahia.modules.gateway.CamelHandler">
+                <entry key="mailtojson" value-ref="mailtojson"/>
+                <entry key="sqltojson">
+                    <bean class="org.jahia.modules.gateway.jdbc.SQLToJSONHandler"/>
+                </entry>
+            </map>
+        </property>
+        <property name="routeStartPoints">
+            <map key-type="java.lang.String" value-type="org.jahia.modules.gateway.CamelStartPoint">
+            </map>
+        </property>
+        <property name="routes">
+            <map key-type="java.lang.String" value-type="java.lang.String">
+                <!--<entry key="default" value="default->mailtojson->jsontojcr"/>-->
+            </map>
+        </property>
+        <property name="camelStartPointFactory">
+            <bean class="org.jahia.modules.gateway.CamelStartPointFactory">
+                <property name="startPointsClasses">
+                    <map key-type="java.lang.String" value-type="java.lang.String">
+                        <entry key="jnt:mailStartPoint"
+                               value="org.jahia.modules.gateway.admin.forms.MailStartPointFormHandlerImpl"/>
+                        <entry key="jnt:sqlStartPoint"
+                               value="org.jahia.modules.gateway.jdbc.SQLStartpoint"/>
+                    </map>
+                </property>
+            </bean>
+        </property>
+    </bean>
+    
+    <osgi:service id="gatewayMailToJson" ref="mailtojson" interface="org.jahia.modules.gateway.mail.MailToJSON"/>
+    <osgi:service id="gatewayService" ref="gatewayServiceImpl" interface="org.jahia.modules.gateway.GatewayService"/>
+</beans>

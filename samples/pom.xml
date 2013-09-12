@@ -42,40 +42,37 @@
 <project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
     <modelVersion>4.0.0</modelVersion>
     <parent>
-        <artifactId>jahia-modules</artifactId>
+        <artifactId>gateway-project</artifactId>
         <groupId>org.jahia.modules</groupId>
-        <version>6.7.0.0-SNAPSHOT</version>
-        <relativePath/>
+        <version>2.0.0-SNAPSHOT</version>
     </parent>
-    <artifactId>gateway-project</artifactId>
-    <name>Jahia Gateway Project</name>
-	<version>2.0.0-SNAPSHOT</version>
-    <packaging>pom</packaging>
-    <description>This is a custom module for running on a Jahia server.</description>
-    <scm>
-        <connection>scm:git:git@github.com:Jahia/gateway.git</connection>
-        <url>scm:git:git@github.com:Jahia/gateway.git</url>
-        <developerConnection>scm:git:git@github.com:Jahia/gateway.git</developerConnection>
-    </scm>
+    <artifactId>gateway-samples</artifactId>
+    <name>Jahia Gateway Samples</name>
+    <packaging>bundle</packaging>
+    <description>Jahia Gatweway Examle usage.</description>
 
-    <repositories>
-        <repository>
-            <id>jahia-public</id>
-            <name>Jahia Public Repository</name>
-            <url>https://devtools.jahia.com/nexus/content/groups/public</url>
-            <releases>
-                <enabled>true</enabled>
-                <updatePolicy>never</updatePolicy>
-            </releases>
-            <snapshots>
-                <enabled>true</enabled>
-            </snapshots>
-        </repository>
-    </repositories>
+    <dependencies>
+        <dependency>
+            <groupId>org.jahia.modules</groupId>
+            <artifactId>gateway</artifactId>
+            <version>${project.version}</version>
+            <scope>provided</scope>
+        </dependency>
+    </dependencies>
 
-    <modules>
-		<module>gateway</module>
-        <module>samples</module>
-    </modules>    
+    <build>
+        <plugins>
+            <plugin>
+                <groupId>org.apache.felix</groupId>
+                <artifactId>maven-bundle-plugin</artifactId>
+                <extensions>true</extensions>
+                <configuration>
+                    <instructions>
+                        <Jahia-Depends>gateway</Jahia-Depends>
+                    </instructions>
+                </configuration>
+            </plugin>
+        </plugins>
+    </build>
+
 </project>
-
