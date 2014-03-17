@@ -353,6 +353,7 @@ public class JSONToJCRDeserializer implements CamelHandler {
                             break;
                         default:
                             newNode.setProperty(name, value);
+                            break;                            
                     }
                 }
             } catch (JSONException e) {
