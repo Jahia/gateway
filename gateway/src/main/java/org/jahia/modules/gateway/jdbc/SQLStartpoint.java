@@ -122,7 +122,7 @@ public class SQLStartpoint implements StartPointFormHandler, CamelStartPoint {
             });
             gatewayService.getRouteStartPoints().put(startPointName, this);
         } catch (RepositoryException e) {
-            e.printStackTrace();
+            logger.error("Error adding JCR node", e);
         }
     }
 
