@@ -140,6 +140,7 @@
           <instructions>
             <Export-Package>!org.jahia.modules.gateway.impl,
                             {local-packages}</Export-Package>
+            <Jahia-Module-Type>system</Jahia-Module-Type>
           </instructions>
         </configuration>
       </plugin>
