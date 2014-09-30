@@ -71,27 +71,12 @@
  */
 package org.jahia.modules.gateway.decoders;
 
-import java.security.Principal;
-import java.util.LinkedList;
-import java.util.List;
-import java.util.Properties;
-import java.util.Set;
-import java.util.StringTokenizer;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
-
-import javax.mail.Address;
-import javax.mail.Message;
-import javax.mail.MessagingException;
-import javax.mail.internet.InternetAddress;
-
 import net.htmlparser.jericho.Source;
 import net.htmlparser.jericho.SourceFormatter;
 import org.apache.commons.lang.StringUtils;
 import org.jahia.modules.gateway.mail.MailContent;
 import org.jahia.modules.gateway.mail.MailContent.FileItem;
 import org.jahia.modules.gateway.mail.MailDecoder;
-import org.jahia.services.content.JCRNodeWrapper;
 import org.jahia.services.content.decorator.JCRUserNode;
 import org.jahia.services.usermanager.JahiaUser;
 import org.jahia.services.usermanager.JahiaUserManagerService;
@@ -100,6 +85,14 @@ import org.json.JSONException;
 import org.json.JSONObject;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import javax.mail.Address;
+import javax.mail.Message;
+import javax.mail.MessagingException;
+import javax.mail.internet.InternetAddress;
+import java.util.*;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 /**
  * Abstract mail decoder containing basic functionality for e-mail handling.
