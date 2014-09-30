@@ -91,6 +91,8 @@ import org.apache.commons.lang.StringUtils;
 import org.jahia.modules.gateway.mail.MailContent;
 import org.jahia.modules.gateway.mail.MailContent.FileItem;
 import org.jahia.modules.gateway.mail.MailDecoder;
+import org.jahia.services.content.JCRNodeWrapper;
+import org.jahia.services.content.decorator.JCRUserNode;
 import org.jahia.services.usermanager.JahiaUser;
 import org.jahia.services.usermanager.JahiaUserManagerService;
 import org.json.JSONArray;
@@ -216,9 +218,8 @@ public abstract class BaseMailDecoder implements MailDecoder {
             if (StringUtils.isNotBlank(from)) {
                 Properties userProperties = new Properties();
                 userProperties.setProperty("j:email", from);
-                Set<Principal> principals = getUserManagerService().searchUsers(userProperties);
-                user = (JahiaUser) (principals != null && !principals.isEmpty() ? principals
-                        .iterator().next() : null);
+                Set<JCRUserNode> users = getUserManagerService().searchUsers(userProperties);
+                user = users != null && !users.isEmpty() ? users.iterator().next().getJahiaUser() : null;
             }
         } catch (MessagingException e) {
             logger.warn("Unable to retrieve Jahia user that corresponds"
