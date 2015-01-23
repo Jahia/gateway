@@ -51,6 +51,10 @@
     <packaging>bundle</packaging>
     <description>A sandbox module for the Jahia Gateway functionality.</description>
 
+    <properties>
+        <jahia-depends>gateway</jahia-depends>
+    </properties>
+
     <dependencies>
         <dependency>
             <groupId>org.jahia.modules</groupId>
@@ -60,20 +64,6 @@
         </dependency>
     </dependencies>
 
-    <build>
-        <plugins>
-            <plugin>
-                <groupId>org.apache.felix</groupId>
-                <artifactId>maven-bundle-plugin</artifactId>
-                <extensions>true</extensions>
-                <configuration>
-                    <instructions>
-                        <Jahia-Depends>gateway</Jahia-Depends>
-                    </instructions>
-                </configuration>
-            </plugin>
-        </plugins>
-    </build>
     <reporting>
         <plugins>
             <plugin>
