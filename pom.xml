@@ -82,14 +82,14 @@
     </parent>
     <artifactId>gateway-project</artifactId>
     <name>Jahia Gateway Project</name>
-	<version>3.0.0-RC</version>
+	<version>3.0.0-SNAPSHOT</version>
     <packaging>pom</packaging>
     <description>This is a custom module for running on a Jahia server.</description>
     <scm>
         <connection>scm:git:git@github.com:Jahia/gateway.git</connection>
         <url>scm:git:git@github.com:Jahia/gateway.git</url>
         <developerConnection>scm:git:git@github.com:Jahia/gateway.git</developerConnection>
-      <tag>3_0_0_RC</tag>
+      <tag>HEAD</tag>
   </scm>
 
     <repositories>
