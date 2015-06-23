@@ -77,19 +77,19 @@
     <parent>
         <artifactId>jahia-modules</artifactId>
         <groupId>org.jahia.modules</groupId>
-        <version>7.1.0.0-SNAPSHOT</version>
+        <version>7.1.0.0</version>
         <relativePath />
     </parent>
     <artifactId>gateway-project</artifactId>
     <name>Jahia Gateway Project</name>
-	<version>3.0.0-SNAPSHOT</version>
+	<version>3.0.0</version>
     <packaging>pom</packaging>
     <description>This is a custom module for running on a Jahia server.</description>
     <scm>
         <connection>scm:git:git@github.com:Jahia/gateway.git</connection>
         <url>scm:git:git@github.com:Jahia/gateway.git</url>
         <developerConnection>scm:git:git@github.com:Jahia/gateway.git</developerConnection>
-      <tag>HEAD</tag>
+      <tag>3_0_0</tag>
   </scm>
 
     <repositories>
