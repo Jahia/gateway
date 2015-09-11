@@ -149,6 +149,7 @@ public class MailToJSONImpl implements ConfigurableCamelHandler, JahiaAfterIniti
             return false;
         }
         Source source = new Source(content);
+        source.setLogger(null);
         OutputDocument outputDocument = new OutputDocument(source);
         outputDocument.remove(source.getAllElements("head"));
         outputDocument.remove(source.getAllElements("base"));
