@@ -84,6 +84,7 @@ import org.jahia.services.content.nodetypes.ExtendedPropertyDefinition;
 import org.jahia.services.content.nodetypes.ExtendedPropertyType;
 import org.jahia.services.content.nodetypes.NodeTypeRegistry;
 import org.jahia.services.tags.TaggingService;
+import org.jahia.services.usermanager.JahiaUserManagerService;
 import org.joda.time.DateTime;
 import org.joda.time.format.ISODateTimeFormat;
 import org.json.JSONArray;
@@ -202,7 +203,7 @@ public class JSONToJCRDeserializer implements CamelHandler {
                                             File file = null;
                                             String contentType = null;
                                             String nodeName = null;
-                                            
+
                                             Object fileItem = files.get(i);
                                             if (fileItem instanceof JSONObject) {
                                                 JSONObject fileDescriptor = (JSONObject) fileItem;
@@ -220,11 +221,11 @@ public class JSONToJCRDeserializer implements CamelHandler {
                                             if (contentType == null) {
                                                 contentType = JCRContentUtils.getMimeType(nodeName);
                                             }
-                                            
+
                                             if (file == null || nodeName == null || contentType == null) {
                                                 continue;
                                             }
-                                            
+
                                             InputStream is = null;
                                             try {
                                                 is = FileUtils.openInputStream(file);
@@ -311,9 +312,10 @@ public class JSONToJCRDeserializer implements CamelHandler {
                     FileInputStream is = null;
                     File file = null;
                     try {
-                        file = new File(files.getString(i));
+                        JSONObject f = files.getJSONObject(i);
+                        file = new File((String) f.get("file"));
                         is = FileUtils.openInputStream(file);
-                        newNode.uploadFile(file.getName(), is, JCRContentUtils.getMimeType(file.getName()));
+                        newNode.uploadFile((String) f.get("name"), is, JCRContentUtils.getMimeType((String) f.get("name")));
                     } catch (IOException e) {
                         logger.error(e.getMessage(), e);
                     } finally {
@@ -384,7 +386,7 @@ public class JSONToJCRDeserializer implements CamelHandler {
                             break;
                         default:
                             newNode.setProperty(name, value);
-                            break;                            
+                            break;
                     }
                 }
             } catch (JSONException e) {
