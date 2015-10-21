@@ -298,7 +298,7 @@ public class MailToJSONImpl implements ConfigurableCamelHandler, JahiaAfterIniti
                 BodyPart bodyPart = mailMessageContent.getBodyPart(i);
                 parseMailMessage(bodyPart, content);
             }
-        } else if (mailContent instanceof String && part.getDisposition() == null) {
+        } else if (mailContent instanceof String && (part.getDisposition() == null || part.getDisposition().equalsIgnoreCase("inline"))) {
             boolean isHtml = false;
             if (content.getBody() == null || ((isHtml = part.isMimeType("text/html")) && !content.isHtml())) {
                 if (isHtml) {
