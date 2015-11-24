@@ -77,7 +77,7 @@
     <parent>
         <artifactId>gateway-project</artifactId>
         <groupId>org.jahia.modules</groupId>
-        <version>3.0.1-SNAPSHOT</version>
+        <version>3.0.1</version>
     </parent>
     <artifactId>gateway-samples</artifactId>
     <name>Jahia Gateway Samples</name>
