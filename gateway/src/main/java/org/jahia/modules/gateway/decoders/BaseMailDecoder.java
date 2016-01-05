@@ -82,7 +82,6 @@ public abstract class BaseMailDecoder implements MailDecoder {
         String content = mailContent.getBody();
         if (StringUtils.isNotBlank(content)) {
             Source source = new Source(content);
-            source.setLogger(null);
             SourceFormatter sourceFormatter = source.getSourceFormatter();
             content = sourceFormatter.toString();
             content = content.replaceAll("(<br ?/?>)", "$1\n");
