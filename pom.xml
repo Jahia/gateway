@@ -28,7 +28,7 @@
         GNU General Public License for more details.
 
         You should have received a copy of the GNU General Public License
-        along with this program. If not, see <http://www.gnu.org/licenses/>.
+        along with this program. If not, see <http://www.gnu.org/licenses />.
 
 
         2/ JSEL - Commercial and Supported Versions of the program
@@ -54,14 +54,14 @@
     </parent>
     <artifactId>gateway-project</artifactId>
     <name>Jahia Gateway Project</name>
-	<version>3.0.2-SNAPSHOT</version>
+	<version>3.0.2</version>
     <packaging>pom</packaging>
     <description>This is a custom module for running on a Jahia server.</description>
     <scm>
         <connection>scm:git:git@github.com:Jahia/gateway.git</connection>
         <url>scm:git:git@github.com:Jahia/gateway.git</url>
         <developerConnection>scm:git:git@github.com:Jahia/gateway.git</developerConnection>
-      <tag>HEAD</tag>
+      <tag>3_0_2</tag>
   </scm>
 
     <repositories>
