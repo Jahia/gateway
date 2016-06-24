@@ -207,6 +207,9 @@ public class JSONToJCRDeserializer implements CamelHandler {
                                                     String siteKey = newNode.getResolveSite().getSiteKey();
                                                     taggingService.tag(newNode.getPath(), jsonObject.getString("tags"), siteKey, true, session);
                                                 }
+                                                if(jsonObject.has(org.jahia.api.Constants.JCR_TITLE)) {
+                                                    newNode.setProperty(org.jahia.api.Constants.JCR_TITLE,jsonObject.getString(org.jahia.api.Constants.JCR_TITLE));
+                                                }
                                             } catch (IOException e) {
                                                 logger.error(e.getMessage(), e);
                                             } finally {
